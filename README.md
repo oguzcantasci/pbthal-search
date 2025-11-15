@@ -23,6 +23,15 @@ python app.py
 
 3. Open your browser to `http://localhost:5001`
 
+## Authentication
+
+**Important:** The tonepoet.fans forum requires users to be logged in to search and access content. 
+
+- When you perform a search, if you're not logged in, the app will display a login prompt
+- Click the "Go to Forum Login" button to open the forum login page in a new tab
+- After logging in to the forum, return to this app and try your search again
+- The app will automatically detect when authentication is required and guide you to log in
+
 ## How It Works
 
 1. User enters a search query (artist or album name)
