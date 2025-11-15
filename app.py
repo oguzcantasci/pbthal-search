@@ -18,13 +18,37 @@ def index():
     return send_from_directory('.', 'index.html')
 
 def scrape_search_results(query):
-    """Scrape the forum search results page and extract post information"""
+    """Scrape the forum search results page and extract post information
+    Returns tuple: (posts, requires_auth) where requires_auth is True if login is needed"""
     search_url = f"{BASE_URL}/?s={quote(query)}"
     
     try:
         response = requests.get(search_url, timeout=10)
         response.raise_for_status()
         soup = BeautifulSoup(response.content, 'lxml')
+        
+        # Check if authentication is required
+        # Look for common login page indicators
+        page_text = soup.get_text().lower()
+        page_title = soup.find('title')
+        title_text = page_title.get_text().lower() if page_title else ''
+        
+        # Check for login page indicators
+        login_indicators = [
+            'wp-login.php' in response.url.lower(),
+            'log in' in title_text,
+            'login' in title_text and 'required' in page_text,
+            soup.find('form', {'id': 'loginform'}),
+            soup.find('form', {'name': 'loginform'}),
+            'you must be logged in' in page_text,
+            'please log in' in page_text,
+            'login required' in page_text
+        ]
+        
+        requires_auth = any(login_indicators)
+        
+        if requires_auth:
+            return [], True
         
         posts = []
         # Find all post entries in search results
@@ -63,10 +87,10 @@ def scrape_search_results(query):
                         'date': post_date
                     })
         
-        return posts
+        return posts, False
     except Exception as e:
         print(f"Error scraping search results: {e}")
-        return []
+        return [], False
 
 def scrape_post_album_links(post_url, query):
     """Scrape a single post page to extract album download links"""
@@ -110,9 +134,20 @@ def format_date(date_str):
     """Format date string to consistent format (e.g., 'September 2025')"""
     if not date_str:
         return ''
+    
     # Try to extract month and year from various date formats
-    # This is a simple implementation - can be enhanced
-    return date_str.strip()
+    # Look for patterns like "April 14, 2025" or "September 2025"
+    date_str = date_str.strip()
+    
+    # Pattern for "Month Day, Year" or "Month Year"
+    month_year_pattern = r'([A-Za-z]+)\s+(\d{4})'
+    match = re.search(month_year_pattern, date_str)
+    if match:
+        month = match.group(1)
+        year = match.group(2)
+        return f"{month} {year}"
+    
+    return date_str
 
 @app.route('/search', methods=['GET'])
 def search():
@@ -124,7 +159,14 @@ def search():
     
     try:
         # Scrape search results
-        posts = scrape_search_results(query)
+        posts, requires_auth = scrape_search_results(query)
+        
+        if requires_auth:
+            return jsonify({
+                'results': [],
+                'requiresAuth': True,
+                'message': 'Please log in to the forum to search'
+            })
         
         if not posts:
             return jsonify({'results': [], 'message': 'No posts found for this query'})
