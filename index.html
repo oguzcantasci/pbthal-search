@@ -161,7 +161,83 @@
     </div>
     
     <script>
-        // TODO: Implement JavaScript for search functionality
+        const searchForm = document.getElementById('searchForm');
+        const searchInput = document.getElementById('searchInput');
+        const searchButton = document.getElementById('searchButton');
+        const resultsDiv = document.getElementById('results');
+        const loadingDiv = document.getElementById('loading');
+        const errorDiv = document.getElementById('errorMessage');
+        
+        function showError(message) {
+            errorDiv.textContent = message;
+            errorDiv.classList.add('active');
+            setTimeout(() => {
+                errorDiv.classList.remove('active');
+            }, 5000);
+        }
+        
+        function showLoading() {
+            loadingDiv.classList.add('active');
+            searchButton.disabled = true;
+            resultsDiv.innerHTML = '';
+        }
+        
+        function hideLoading() {
+            loadingDiv.classList.remove('active');
+            searchButton.disabled = false;
+        }
+        
+        function formatResult(result) {
+            // Format: "Album Name (Post Title, Date)"
+            const datePart = result.postDate ? `, ${result.postDate}` : '';
+            return `${result.album} (${result.postTitle}${datePart})`;
+        }
+        
+        function displayResults(results) {
+            if (results.length === 0) {
+                resultsDiv.innerHTML = '<div class="no-results">No results found. Try a different search query.</div>';
+                return;
+            }
+            
+            resultsDiv.innerHTML = results.map(result => {
+                const formattedText = formatResult(result);
+                return `
+                    <div class="result-item">
+                        <a href="${result.url}" target="_blank" rel="noopener noreferrer">
+                            ${formattedText}
+                        </a>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        searchForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const query = searchInput.value.trim();
+            if (!query) {
+                showError('Please enter a search query');
+                return;
+            }
+            
+            showLoading();
+            
+            try {
+                const response = await fetch(`/search?q=${encodeURIComponent(query)}`);
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Search failed');
+                }
+                
+                displayResults(data.results || []);
+            } catch (error) {
+                showError(`Error: ${error.message}`);
+                resultsDiv.innerHTML = '';
+            } finally {
+                hideLoading();
+            }
+        });
     </script>
 </body>
 </html>
