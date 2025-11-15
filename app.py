@@ -65,6 +65,52 @@ def scrape_search_results(query):
         print(f"Error scraping search results: {e}")
         return []
 
+def scrape_post_album_links(post_url, query):
+    """Scrape a single post page to extract album download links"""
+    try:
+        response = requests.get(post_url, timeout=10)
+        response.raise_for_status()
+        soup = BeautifulSoup(response.content, 'lxml')
+        
+        album_links = []
+        # Find all links in the post content
+        # Look for links that might contain album names (Artist - Album format)
+        content_area = soup.find(['article', 'div'], class_=lambda x: x and ('content' in x.lower() or 'entry' in x.lower() or 'post' in x.lower()) if x else False)
+        
+        if not content_area:
+            # Fallback: search entire page
+            content_area = soup
+        
+        # Find all links
+        links = content_area.find_all('a', href=True)
+        
+        for link in links:
+            link_text = link.get_text(strip=True)
+            link_url = urljoin(BASE_URL, link.get('href', ''))
+            
+            # Check if link text contains the query (case-insensitive)
+            # Also check for common album link patterns (Artist - Album)
+            if query.lower() in link_text.lower() and link_text:
+                # Additional check: should look like an album link (contains dash or common patterns)
+                if ' - ' in link_text or len(link_text) > 5:
+                    album_links.append({
+                        'text': link_text,
+                        'url': link_url
+                    })
+        
+        return album_links
+    except Exception as e:
+        print(f"Error scraping post {post_url}: {e}")
+        return []
+
+def format_date(date_str):
+    """Format date string to consistent format (e.g., 'September 2025')"""
+    if not date_str:
+        return ''
+    # Try to extract month and year from various date formats
+    # This is a simple implementation - can be enhanced
+    return date_str.strip()
+
 @app.route('/search', methods=['GET'])
 def search():
     """Search endpoint for forum queries"""
@@ -76,8 +122,24 @@ def search():
     # Scrape search results
     posts = scrape_search_results(query)
     
-    # TODO: Scrape individual posts for album links
-    return jsonify({'results': [], 'posts_found': len(posts)})
+    # Scrape each post for album links
+    results = []
+    for post in posts:
+        album_links = scrape_post_album_links(post['url'], query)
+        post_date = format_date(post['date'])
+        
+        for link in album_links:
+            results.append({
+                'album': link['text'],
+                'url': link['url'],
+                'postTitle': post['title'],
+                'postDate': post_date
+            })
+        
+        # Add small delay to avoid overwhelming the server
+        time.sleep(0.5)
+    
+    return jsonify({'results': results})
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
