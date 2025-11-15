@@ -136,6 +136,42 @@
             color: #666;
             font-size: 18px;
         }
+        
+        .login-prompt {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            border-radius: 8px;
+            padding: 25px;
+            margin-top: 20px;
+            text-align: center;
+        }
+        
+        .login-prompt h3 {
+            color: #856404;
+            margin-bottom: 15px;
+            font-size: 20px;
+        }
+        
+        .login-prompt p {
+            color: #856404;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+        
+        .login-prompt a {
+            display: inline-block;
+            padding: 12px 30px;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: background 0.3s;
+        }
+        
+        .login-prompt a:hover {
+            background: #5568d3;
+        }
     </style>
 </head>
 <body>
@@ -193,6 +229,18 @@
             return `${result.album} (${result.postTitle}${datePart})`;
         }
         
+        function displayLoginPrompt() {
+            resultsDiv.innerHTML = `
+                <div class="login-prompt">
+                    <h3>Login Required</h3>
+                    <p>You need to log in to the forum to search for albums. Please log in to tonepoet.fans, then return here to search.</p>
+                    <a href="https://tonepoet.fans/wp-login.php" target="_blank" rel="noopener noreferrer">
+                        Go to Forum Login
+                    </a>
+                </div>
+            `;
+        }
+        
         function displayResults(results) {
             if (results.length === 0) {
                 resultsDiv.innerHTML = '<div class="no-results">No results found. Try a different search query.</div>';
@@ -230,7 +278,12 @@
                     throw new Error(data.error || 'Search failed');
                 }
                 
-                displayResults(data.results || []);
+                // Check if authentication is required
+                if (data.requiresAuth) {
+                    displayLoginPrompt();
+                } else {
+                    displayResults(data.results || []);
+                }
             } catch (error) {
                 showError(`Error: ${error.message}`);
                 resultsDiv.innerHTML = '';
