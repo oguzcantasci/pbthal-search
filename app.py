@@ -1,11 +1,14 @@
 from flask import Flask, request, jsonify, send_from_directory
+from flask_cors import CORS
 import os
 import requests
 from bs4 import BeautifulSoup
 import time
 from urllib.parse import urljoin, quote
+import re
 
 app = Flask(__name__)
+CORS(app)  # Enable CORS for all routes
 
 BASE_URL = 'https://tonepoet.fans'
 
@@ -119,28 +122,39 @@ def search():
     if not query:
         return jsonify({'error': 'Query parameter is required'}), 400
     
-    # Scrape search results
-    posts = scrape_search_results(query)
-    
-    # Scrape each post for album links
-    results = []
-    for post in posts:
-        album_links = scrape_post_album_links(post['url'], query)
-        post_date = format_date(post['date'])
+    try:
+        # Scrape search results
+        posts = scrape_search_results(query)
         
-        for link in album_links:
-            results.append({
-                'album': link['text'],
-                'url': link['url'],
-                'postTitle': post['title'],
-                'postDate': post_date
-            })
+        if not posts:
+            return jsonify({'results': [], 'message': 'No posts found for this query'})
         
-        # Add small delay to avoid overwhelming the server
-        time.sleep(0.5)
-    
-    return jsonify({'results': results})
+        # Scrape each post for album links
+        results = []
+        for post in posts:
+            try:
+                album_links = scrape_post_album_links(post['url'], query)
+                post_date = format_date(post['date'])
+                
+                for link in album_links:
+                    results.append({
+                        'album': link['text'],
+                        'url': link['url'],
+                        'postTitle': post['title'],
+                        'postDate': post_date
+                    })
+                
+                # Add small delay to avoid overwhelming the server
+                time.sleep(0.5)
+            except Exception as e:
+                print(f"Error processing post {post['url']}: {e}")
+                continue
+        
+        return jsonify({'results': results})
+    except Exception as e:
+        print(f"Error in search endpoint: {e}")
+        return jsonify({'error': 'An error occurred while searching', 'results': []}), 500
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    app.run(debug=True, port=5001)
 
