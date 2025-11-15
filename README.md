@@ -21,7 +21,7 @@ pip install -r requirements.txt
 python app.py
 ```
 
-3. Open your browser to `http://localhost:5000`
+3. Open your browser to `http://localhost:5001`
 
 ## How It Works
 
@@ -36,4 +36,5 @@ python app.py
 - Python Flask (backend)
 - BeautifulSoup4 (web scraping)
 - HTML/JavaScript (frontend)
+
 
