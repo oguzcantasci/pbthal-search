@@ -12,6 +12,14 @@ CORS(app)  # Enable CORS for all routes
 
 BASE_URL = 'https://tonepoet.fans'
 
+# Use a single session and ignore system proxy settings that can hijack requests
+session = requests.Session()
+session.trust_env = False  # ignore HTTP(S)_PROXY and similar env vars
+session.proxies = {"http": None, "https": None}
+session.headers.update({
+    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36'
+})
+
 @app.route('/')
 def index():
     """Serve the main HTML page"""
@@ -23,15 +31,59 @@ def scrape_search_results(query):
     search_url = f"{BASE_URL}/?s={quote(query)}"
     
     try:
-        response = requests.get(search_url, timeout=10)
+        response = session.get(search_url, timeout=10, allow_redirects=True)
         response.raise_for_status()
         soup = BeautifulSoup(response.content, 'lxml')
+        
+        # First-post authentication check: if the first post body shows restricted message, require login
+        try:
+            first_post_elem = None
+            tentative_posts = soup.find_all(['article', 'div'], class_=lambda x: x and ('post' in x.lower() or 'entry' in x.lower()))
+            if tentative_posts:
+                first_post_elem = tentative_posts[0]
+            else:
+                first_heading = soup.find('h2')
+                if first_heading:
+                    first_post_elem = first_heading.find_parent(['article', 'div']) or first_heading
+            if first_post_elem is not None:
+                first_post_html = str(first_post_elem).lower()
+                if ('members-access-error' in first_post_html) or ('sorry, but you do not have permission to view this content' in first_post_html):
+                    print("Authentication required: first post is restricted")
+                    return [], True
+        except Exception as _:
+            # Non-fatal: continue with other detection methods
+            pass
         
         # Check if authentication is required
         # Look for common login page indicators
         page_text = soup.get_text().lower()
+        page_html = str(soup).lower()
         page_title = soup.find('title')
         title_text = page_title.get_text().lower() if page_title else ''
+        
+        # Check for the exact permission error text or partial matches
+        response_text = response.text
+        response_lower = response_text.lower()
+        
+        # Check for various forms of the permission error
+        permission_indicators = [
+            'sorry, but you do not have permission to view this content',
+            'do not have permission to view this content',
+            'please register in order to view this',
+            'members-access-error'
+        ]
+        
+        for indicator in permission_indicators:
+            if indicator in response_lower:
+                print(f"Authentication required: found '{indicator}'")
+                return [], True
+        
+        # Try multiple ways to find it in parsed soup
+        members_error_div = (soup.find('div', class_='members-access-error') or 
+                            soup.find('div', class_=lambda x: x and 'members-access-error' in str(x) if x else False))
+        if members_error_div:
+            print(f"Authentication required: found members-access-error div")
+            return [], True
         
         # Check for login page indicators
         login_indicators = [
@@ -42,12 +94,17 @@ def scrape_search_results(query):
             soup.find('form', {'name': 'loginform'}),
             'you must be logged in' in page_text,
             'please log in' in page_text,
-            'login required' in page_text
+            'login required' in page_text,
+            'you do not have permission to view this content' in page_text,
+            'members-access-error' in page_html,
+            'please register in order to view this' in page_text,
+            'do not have permission' in page_text
         ]
         
         requires_auth = any(login_indicators)
         
         if requires_auth:
+            print(f"Authentication required detected for query: {query}")
             return [], True
         
         posts = []
@@ -55,14 +112,24 @@ def scrape_search_results(query):
         # WordPress typically uses article tags or divs with specific classes
         post_elements = soup.find_all(['article', 'div'], class_=lambda x: x and ('post' in x.lower() or 'entry' in x.lower()))
         
+        # Check if all posts have restricted content
+        restricted_posts_count = 0
+        total_posts_found = 0
+        
         # If no posts found with class, try finding h2 headings (post titles)
         if not post_elements:
             headings = soup.find_all('h2')
             for heading in headings:
                 link = heading.find('a')
                 if link:
+                    total_posts_found += 1
                     post_url = urljoin(BASE_URL, link.get('href', ''))
                     post_title = heading.get_text(strip=True)
+                    # Check if this post has restricted content
+                    post_content = heading.find_next(['div', 'article'], class_=lambda x: x and ('content' in x.lower() or 'entry' in x.lower() or 'post' in x.lower()) if x else False)
+                    if post_content:
+                        if post_content.find('div', class_=lambda x: x and 'members-access-error' in str(x).lower() if x else False):
+                            restricted_posts_count += 1
                     # Try to find date nearby
                     date_elem = heading.find_next(['time', 'span'], class_=lambda x: x and 'date' in x.lower() if x else False)
                     post_date = date_elem.get_text(strip=True) if date_elem else ''
@@ -75,10 +142,14 @@ def scrape_search_results(query):
             for post_elem in post_elements:
                 link = post_elem.find('a')
                 if link:
+                    total_posts_found += 1
                     post_url = urljoin(BASE_URL, link.get('href', ''))
                     post_title = link.get_text(strip=True) or post_elem.find(['h1', 'h2', 'h3'])
                     if isinstance(post_title, type(soup)):
                         post_title = post_title.get_text(strip=True)
+                    # Check if this post has restricted content
+                    if post_elem.find('div', class_=lambda x: x and 'members-access-error' in str(x).lower() if x else False):
+                        restricted_posts_count += 1
                     date_elem = post_elem.find(['time', 'span'], class_=lambda x: x and 'date' in x.lower() if x else False)
                     post_date = date_elem.get_text(strip=True) if date_elem else ''
                     posts.append({
@@ -86,6 +157,17 @@ def scrape_search_results(query):
                         'url': post_url,
                         'date': post_date
                     })
+        
+        # If we found posts but all of them are restricted, require authentication
+        # Also check if any posts have restricted content - if most/all do, require auth
+        if total_posts_found > 0:
+            if restricted_posts_count == total_posts_found:
+                print(f"All {total_posts_found} posts are restricted - authentication required")
+                return [], True
+            # If more than half the posts are restricted, likely need auth
+            elif restricted_posts_count > 0 and (restricted_posts_count / total_posts_found) >= 0.5:
+                print(f"{restricted_posts_count}/{total_posts_found} posts are restricted - authentication likely required")
+                return [], True
         
         return posts, False
     except Exception as e:
@@ -95,7 +177,7 @@ def scrape_search_results(query):
 def scrape_post_album_links(post_url, query):
     """Scrape a single post page to extract album download links"""
     try:
-        response = requests.get(post_url, timeout=10)
+        response = session.get(post_url, timeout=10, allow_redirects=True)
         response.raise_for_status()
         soup = BeautifulSoup(response.content, 'lxml')
         
@@ -192,10 +274,22 @@ def search():
                 print(f"Error processing post {post['url']}: {e}")
                 continue
         
+        # If we found posts but no album links, likely need authentication
+        if len(posts) > 0 and len(results) == 0:
+            print(f"Found {len(posts)} posts but no album links - authentication likely required")
+            return jsonify({
+                'results': [],
+                'requiresAuth': True,
+                'message': 'Please log in to the forum to search'
+            })
+        
         return jsonify({'results': results})
     except Exception as e:
+        error_msg = str(e)
         print(f"Error in search endpoint: {e}")
-        return jsonify({'error': 'An error occurred while searching', 'results': []}), 500
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': f'An error occurred while searching: {error_msg}', 'results': []}), 500
 
 if __name__ == '__main__':
     app.run(debug=True, port=5001)
