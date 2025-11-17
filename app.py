@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify, send_from_directory, session
 from flask_cors import CORS
 import os
 import requests
@@ -8,7 +8,8 @@ from urllib.parse import urljoin, quote
 import re
 
 app = Flask(__name__)
-CORS(app)  # Enable CORS for all routes
+app.secret_key = os.urandom(24)  # Required for Flask sessions
+CORS(app, supports_credentials=True)  # Enable credentials for cookie passthrough
 
 BASE_URL = 'https://tonepoet.fans'
 
