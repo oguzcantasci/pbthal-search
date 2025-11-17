@@ -233,12 +233,67 @@
             resultsDiv.innerHTML = `
                 <div class="login-prompt">
                     <h3>Login Required</h3>
-                    <p>You need to log in to the forum to search for albums. Please log in to tonepoet.fans, then return here to search.</p>
-                    <a href="https://tonepoet.fans/wp-login.php" target="_blank" rel="noopener noreferrer">
+                    <p>You need to log in to the forum to search for albums.</p>
+                    <ol style="text-align: left; max-width: 500px; margin: 20px auto; color: #856404;">
+                        <li>Click the button below to open the forum login page</li>
+                        <li>Log in to tonepoet.fans in the new tab</li>
+                        <li>After logging in, open browser DevTools (F12 or Cmd+Option+I)</li>
+                        <li>Go to Application/Storage → Cookies → https://tonepoet.fans</li>
+                        <li>Copy all cookies (or just wordpress_logged_in_* and wordpress_sec_*)</li>
+                        <li>Paste them below and click "Save Cookies"</li>
+                    </ol>
+                    <a href="https://tonepoet.fans/wp-login.php" target="_blank" rel="noopener noreferrer" style="margin-bottom: 20px; display: inline-block;">
                         Go to Forum Login
                     </a>
+                    <div style="margin-top: 20px;">
+                        <textarea 
+                            id="cookieInput" 
+                            placeholder="Paste cookies here (format: name1=value1; name2=value2)"
+                            style="width: 100%; max-width: 500px; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-family: monospace; font-size: 12px;"
+                            rows="3"
+                        ></textarea>
+                        <button 
+                            id="saveCookiesBtn" 
+                            style="margin-top: 10px; padding: 10px 20px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer;"
+                        >
+                            Save Cookies
+                        </button>
+                    </div>
                 </div>
             `;
+            
+            // Add event listener for save cookies button
+            document.getElementById('saveCookiesBtn').addEventListener('click', async () => {
+                const cookies = document.getElementById('cookieInput').value.trim();
+                if (!cookies) {
+                    showError('Please paste your cookies');
+                    return;
+                }
+                
+                try {
+                    const response = await fetch('/set-cookies', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        credentials: 'include',
+                        body: JSON.stringify({ cookies })
+                    });
+                    
+                    const data = await response.json();
+                    if (data.success) {
+                        showError('Cookies saved! Try searching again.');
+                        // Optionally trigger a search automatically
+                        setTimeout(() => {
+                            searchForm.dispatchEvent(new Event('submit'));
+                        }, 1000);
+                    } else {
+                        showError(data.error || 'Failed to save cookies');
+                    }
+                } catch (error) {
+                    showError(`Error: ${error.message}`);
+                }
+            });
         }
         
         function displayResults(results) {
