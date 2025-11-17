@@ -38,8 +38,11 @@ def scrape_search_results(query):
     Returns tuple: (posts, requires_auth) where requires_auth is True if login is needed"""
     search_url = f"{BASE_URL}/?s={quote(query)}"
     
+    # Use authenticated session with user's cookies
+    user_session = get_authenticated_session()
+    
     try:
-        response = session.get(search_url, timeout=10, allow_redirects=True)
+        response = user_session.get(search_url, timeout=10, allow_redirects=True)
         response.raise_for_status()
         soup = BeautifulSoup(response.content, 'lxml')
         
