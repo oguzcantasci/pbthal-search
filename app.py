@@ -67,6 +67,13 @@ def scrape_search_results(query):
     try:
         response = user_session.get(search_url, timeout=10, allow_redirects=True)
         response.raise_for_status()
+        
+        # Debug: Log response info
+        print(f"Response status: {response.status_code}")
+        print(f"Response URL: {response.url}")
+        print(f"Response length: {len(response.text)} bytes")
+        print(f"Cookies in request: {list(user_session.cookies.keys())}")
+        
         soup = BeautifulSoup(response.content, 'lxml')
         
         # First-post authentication check: if the first post body shows restricted message, require login
@@ -195,6 +202,7 @@ def scrape_search_results(query):
         # If we found posts but all of them are restricted, require authentication
         # Also check if any posts have restricted content - if most/all do, require auth
         if total_posts_found > 0:
+            print(f"Found {total_posts_found} posts, {restricted_posts_count} are restricted")
             if restricted_posts_count == total_posts_found:
                 print(f"All {total_posts_found} posts are restricted - authentication required")
                 return [], True
@@ -203,6 +211,7 @@ def scrape_search_results(query):
                 print(f"{restricted_posts_count}/{total_posts_found} posts are restricted - authentication likely required")
                 return [], True
         
+        print(f"Returning {len(posts)} posts, auth not required")
         return posts, False
     except Exception as e:
         print(f"Error scraping search results: {e}")
@@ -276,19 +285,41 @@ def search():
     if not query:
         return jsonify({'error': 'Query parameter is required'}), 400
     
+    # Debug: Check if cookies are stored
+    has_cookies = 'forum_cookies' in session
+    print(f"\n=== SEARCH DEBUG for '{query}' ===")
+    print(f"Has stored cookies: {has_cookies}")
+    if has_cookies:
+        print(f"Cookie names: {list(session['forum_cookies'].keys())}")
+    
     try:
         # Scrape search results
         posts, requires_auth = scrape_search_results(query)
+        
+        print(f"Requires auth: {requires_auth}")
+        print(f"Posts found: {len(posts)}")
         
         if requires_auth:
             return jsonify({
                 'results': [],
                 'requiresAuth': True,
-                'message': 'Please log in to the forum to search'
+                'message': 'Please log in to the forum to search',
+                'debug': {
+                    'hasCookies': has_cookies,
+                    'cookieCount': len(session.get('forum_cookies', {}))
+                }
             })
         
         if not posts:
-            return jsonify({'results': [], 'message': 'No posts found for this query'})
+            return jsonify({
+                'results': [],
+                'message': 'No posts found for this query',
+                'debug': {
+                    'hasCookies': has_cookies,
+                    'cookieCount': len(session.get('forum_cookies', {})),
+                    'requiresAuth': requires_auth
+                }
+            })
         
         # Scrape each post for album links
         results = []
@@ -314,13 +345,27 @@ def search():
         # If we found posts but no album links, likely need authentication
         if len(posts) > 0 and len(results) == 0:
             print(f"Found {len(posts)} posts but no album links - authentication likely required")
+            print(f"Post URLs checked: {[post['url'] for post in posts[:3]]}")
             return jsonify({
                 'results': [],
                 'requiresAuth': True,
-                'message': 'Please log in to the forum to search'
+                'message': 'Please log in to the forum to search',
+                'debug': {
+                    'postsFound': len(posts),
+                    'albumLinksFound': 0,
+                    'hasCookies': has_cookies
+                }
             })
         
-        return jsonify({'results': results})
+        print(f"Successfully found {len(results)} album links")
+        return jsonify({
+            'results': results,
+            'debug': {
+                'postsFound': len(posts),
+                'albumLinksFound': len(results),
+                'hasCookies': has_cookies
+            }
+        })
     except Exception as e:
         error_msg = str(e)
         print(f"Error in search endpoint: {e}")
