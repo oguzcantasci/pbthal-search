@@ -326,7 +326,9 @@
             showLoading();
             
             try {
-                const response = await fetch(`/search?q=${encodeURIComponent(query)}`);
+                const response = await fetch(`/search?q=${encodeURIComponent(query)}`, {
+                    credentials: 'include'  // Include cookies for session management
+                });
                 const data = await response.json();
                 
                 if (!response.ok) {
