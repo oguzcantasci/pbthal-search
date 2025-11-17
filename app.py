@@ -33,6 +33,29 @@ def index():
     """Serve the main HTML page"""
     return send_from_directory('.', 'index.html')
 
+@app.route('/set-cookies', methods=['POST'])
+def set_cookies():
+    """Store forum cookies from user's browser session"""
+    try:
+        cookies_str = request.json.get('cookies', '')
+        if not cookies_str:
+            return jsonify({'error': 'No cookies provided'}), 400
+        
+        # Parse cookie string (format: "name1=value1; name2=value2")
+        cookies_dict = {}
+        for cookie in cookies_str.split(';'):
+            cookie = cookie.strip()
+            if '=' in cookie:
+                name, value = cookie.split('=', 1)
+                cookies_dict[name.strip()] = value.strip()
+        
+        # Store in Flask session
+        session['forum_cookies'] = cookies_dict
+        return jsonify({'success': True, 'message': 'Cookies saved successfully'})
+    except Exception as e:
+        print(f"Error saving cookies: {e}")
+        return jsonify({'error': str(e)}), 500
+
 def scrape_search_results(query):
     """Scrape the forum search results page and extract post information
     Returns tuple: (posts, requires_auth) where requires_auth is True if login is needed"""
