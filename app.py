@@ -13,13 +13,20 @@ CORS(app, supports_credentials=True)  # Enable credentials for cookie passthroug
 
 BASE_URL = 'https://tonepoet.fans'
 
-# Use a single session and ignore system proxy settings that can hijack requests
-session = requests.Session()
-session.trust_env = False  # ignore HTTP(S)_PROXY and similar env vars
-session.proxies = {"http": None, "https": None}
-session.headers.update({
-    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36'
-})
+def get_authenticated_session():
+    """Get a requests session with user's forum cookies if available"""
+    user_session = requests.Session()
+    user_session.trust_env = False  # ignore HTTP(S)_PROXY and similar env vars
+    user_session.proxies = {"http": None, "https": None}
+    user_session.headers.update({
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36'
+    })
+    
+    # Add stored cookies if available
+    if 'forum_cookies' in session:
+        user_session.cookies.update(session['forum_cookies'])
+    
+    return user_session
 
 @app.route('/')
 def index():
