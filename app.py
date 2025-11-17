@@ -150,51 +150,45 @@ def scrape_search_results(query):
         
         posts = []
         # Find all post entries in search results
-        # WordPress typically uses article tags or divs with specific classes
-        post_elements = soup.find_all(['article', 'div'], class_=lambda x: x and ('post' in x.lower() or 'entry' in x.lower()))
+        # Look for divs with id="post-XXXX" pattern (actual search result posts)
+        # Or h2.entry-title elements (post titles in search results)
+        
+        # Method 1: Find divs with post-XXXX id pattern
+        post_elements = soup.find_all('div', id=lambda x: x and x.startswith('post-'))
+        
+        # Method 2: If that doesn't work, find h2.entry-title elements
+        if not post_elements:
+            entry_titles = soup.find_all('h2', class_='entry-title')
+            for h2 in entry_titles:
+                # Find the parent post div
+                parent_post = h2.find_parent('div', id=lambda x: x and x.startswith('post-'))
+                if parent_post:
+                    post_elements.append(parent_post)
         
         # Check if all posts have restricted content
         restricted_posts_count = 0
         total_posts_found = 0
         
-        # If no posts found with class, try finding h2 headings (post titles)
-        if not post_elements:
-            headings = soup.find_all('h2')
-            for heading in headings:
-                link = heading.find('a')
+        for post_elem in post_elements:
+            # Find the h2.entry-title link inside this post
+            entry_title = post_elem.find('h2', class_='entry-title')
+            if entry_title:
+                link = entry_title.find('a')
                 if link:
                     total_posts_found += 1
                     post_url = urljoin(BASE_URL, link.get('href', ''))
-                    post_title = heading.get_text(strip=True)
-                    # Check if this post has restricted content
-                    post_content = heading.find_next(['div', 'article'], class_=lambda x: x and ('content' in x.lower() or 'entry' in x.lower() or 'post' in x.lower()) if x else False)
-                    if post_content:
-                        if post_content.find('div', class_=lambda x: x and 'members-access-error' in str(x).lower() if x else False):
-                            restricted_posts_count += 1
-                    # Try to find date nearby
-                    date_elem = heading.find_next(['time', 'span'], class_=lambda x: x and 'date' in x.lower() if x else False)
-                    post_date = date_elem.get_text(strip=True) if date_elem else ''
-                    posts.append({
-                        'title': post_title,
-                        'url': post_url,
-                        'date': post_date
-                    })
-        else:
-            for post_elem in post_elements:
-                link = post_elem.find('a')
-                if link:
-                    total_posts_found += 1
-                    post_url = urljoin(BASE_URL, link.get('href', ''))
-                    post_title = link.get_text(strip=True) or post_elem.find(['h1', 'h2', 'h3'])
-                    if isinstance(post_title, type(soup)):
-                        post_title = post_title.get_text(strip=True)
+                    post_title = link.get_text(strip=True) or link.get('title', '')
+                    
                     # Check if this post has restricted content
                     if post_elem.find('div', class_=lambda x: x and 'members-access-error' in str(x).lower() if x else False):
                         restricted_posts_count += 1
+                    
+                    # Try to find date nearby
                     date_elem = post_elem.find(['time', 'span'], class_=lambda x: x and 'date' in x.lower() if x else False)
                     post_date = date_elem.get_text(strip=True) if date_elem else ''
+                    
                     posts.append({
-                        'title': post_title or 'Untitled',
+                        'title': post_title,
                         'url': post_url,
                         'date': post_date
                     })
