@@ -4,7 +4,7 @@ import os
 import requests
 from bs4 import BeautifulSoup
 import time
-from urllib.parse import urljoin, quote
+from urllib.parse import urljoin, quote_plus
 import re
 
 app = Flask(__name__)
@@ -59,7 +59,7 @@ def set_cookies():
 def scrape_search_results(query):
     """Scrape the forum search results page and extract post information
     Returns tuple: (posts, requires_auth) where requires_auth is True if login is needed"""
-    search_url = f"{BASE_URL}/?s={quote(query)}"
+    search_url = f"{BASE_URL}/?s={quote_plus(query)}"
     
     # Use authenticated session with user's cookies
     user_session = get_authenticated_session()
