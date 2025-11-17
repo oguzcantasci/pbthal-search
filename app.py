@@ -187,8 +187,11 @@ def scrape_search_results(query):
 
 def scrape_post_album_links(post_url, query):
     """Scrape a single post page to extract album download links"""
+    # Use authenticated session with user's cookies
+    user_session = get_authenticated_session()
+    
     try:
-        response = session.get(post_url, timeout=10, allow_redirects=True)
+        response = user_session.get(post_url, timeout=10, allow_redirects=True)
         response.raise_for_status()
         soup = BeautifulSoup(response.content, 'lxml')
         
