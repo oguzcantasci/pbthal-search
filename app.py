@@ -222,16 +222,36 @@ def scrape_post_album_links(post_url, query):
         soup = BeautifulSoup(response.content, 'lxml')
         
         album_links = []
-        # Find all links in the post content
-        # Look for links that might contain album names (Artist - Album format)
-        content_area = soup.find(['article', 'div'], class_=lambda x: x and ('content' in x.lower() or 'entry' in x.lower() or 'post' in x.lower()) if x else False)
+        # Find the post div with id="post-XXXX" pattern (same as search results)
+        post_div = soup.find('div', id=lambda x: x and x.startswith('post-'))
+        
+        print(f"  DEBUG: Post div found: {post_div is not None}")
+        
+        if post_div:
+            # Find the entry-content div within the post (where album links are)
+            content_area = post_div.find('div', class_='entry-content')
+            if not content_area:
+                # Fallback: try post-contents or any div with entry-content in class
+                content_area = post_div.find('div', class_=lambda x: x and 'entry-content' in str(x) if x else False)
+        else:
+            # Fallback: search for entry-content anywhere
+            content_area = soup.find('div', class_='entry-content')
+            if not content_area:
+                content_area = soup.find('div', class_=lambda x: x and 'entry-content' in str(x) if x else False)
         
         if not content_area:
-            # Fallback: search entire page
+            # Last resort: search entire page
             content_area = soup
+            print(f"  DEBUG: Using entire page as content area (entry-content not found)")
+        else:
+            print(f"  DEBUG: Content area found: {content_area.name if hasattr(content_area, 'name') else 'unknown'}")
         
-        # Find all links
+        # Find all links in the content area
         links = content_area.find_all('a', href=True)
+        print(f"  DEBUG: Found {len(links)} total links in content area")
+        
+        hexload_links = 0
+        matching_links = 0
         
         for link in links:
             link_text = link.get_text(strip=True)
@@ -244,14 +264,19 @@ def scrape_post_album_links(post_url, query):
             is_download_link = 'hexload.com' in link_url
             
             if is_download_link:
+                hexload_links += 1
                 link_text_lower = link_text.lower()
                 query_lower = query.lower()
                 # Check if link text contains the query (case-insensitive)
                 if query_lower in link_text_lower:
+                    matching_links += 1
                     album_links.append({
                         'text': link_text,
                         'url': link_url
                     })
+                    print(f"    MATCH: {link_text[:60]}...")
+        
+        print(f"  DEBUG: {hexload_links} hexload.com links found, {matching_links} matched query")
         
         return album_links
     except Exception as e:
