@@ -219,6 +219,15 @@ def scrape_post_album_links(post_url, query):
     try:
         response = user_session.get(post_url, timeout=10, allow_redirects=True)
         response.raise_for_status()
+        
+        print(f"  DEBUG: Response status: {response.status_code}")
+        print(f"  DEBUG: Response URL: {response.url}")
+        print(f"  DEBUG: Response length: {len(response.text)} bytes")
+        
+        # Check if page requires authentication
+        if 'members-access-error' in response.text.lower() or 'do not have permission' in response.text.lower():
+            print(f"  DEBUG: WARNING - Page may require authentication!")
+        
         soup = BeautifulSoup(response.content, 'lxml')
         
         album_links = []
@@ -233,7 +242,14 @@ def scrape_post_album_links(post_url, query):
             if not content_area:
                 # Fallback: try post-contents or any div with entry-content in class
                 content_area = post_div.find('div', class_=lambda x: x and 'entry-content' in str(x) if x else False)
+            
+            if content_area:
+                classes = content_area.get('class', [])
+                print(f"  DEBUG: Content area found with classes: {classes}")
+            else:
+                print(f"  DEBUG: Content area NOT found in post div")
         else:
+            print(f"  DEBUG: Post div NOT found, searching entire page")
             # Fallback: search for entry-content anywhere
             content_area = soup.find('div', class_='entry-content')
             if not content_area:
@@ -244,7 +260,8 @@ def scrape_post_album_links(post_url, query):
             content_area = soup
             print(f"  DEBUG: Using entire page as content area (entry-content not found)")
         else:
-            print(f"  DEBUG: Content area found: {content_area.name if hasattr(content_area, 'name') else 'unknown'}")
+            classes = content_area.get('class', [])
+            print(f"  DEBUG: Content area found with classes: {classes}")
         
         # Find all links in the content area
         links = content_area.find_all('a', href=True)
@@ -281,6 +298,8 @@ def scrape_post_album_links(post_url, query):
         return album_links
     except Exception as e:
         print(f"Error scraping post {post_url}: {e}")
+        import traceback
+        traceback.print_exc()
         return []
 
 def format_date(date_str):
