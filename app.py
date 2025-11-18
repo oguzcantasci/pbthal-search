@@ -104,6 +104,9 @@ def scrape_search_results(query):
         response = user_session.get(search_url, timeout=10, allow_redirects=True)
         response.raise_for_status()
         
+        # Update Flask session with any new cookies WordPress might have set
+        update_session_cookies(user_session)
+        
         # Debug: Log response info
         print(f"Response status: {response.status_code}")
         print(f"Response URL: {response.url}")
