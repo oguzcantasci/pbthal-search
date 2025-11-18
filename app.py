@@ -298,6 +298,10 @@ def search():
         
         print(f"Requires auth: {requires_auth}")
         print(f"Posts found: {len(posts)}")
+        if posts:
+            print("Posts detected:")
+            for i, post in enumerate(posts, 1):
+                print(f"  {i}. {post['title']} ({post['url']})")
         
         if requires_auth:
             return jsonify({
@@ -325,7 +329,9 @@ def search():
         results = []
         for post in posts:
             try:
+                print(f"\nProcessing post: {post['title']}")
                 album_links = scrape_post_album_links(post['url'], query)
+                print(f"  Found {len(album_links)} album links in this post")
                 post_date = format_date(post['date'])
                 
                 for link in album_links:
