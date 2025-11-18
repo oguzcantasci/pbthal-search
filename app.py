@@ -274,9 +274,9 @@ def scrape_post_album_links(post_url, query):
                         'text': link_text,
                         'url': link_url
                     })
-                    print(f"    MATCH: {link_text[:60]}...")
         
-        print(f"  DEBUG: {hexload_links} hexload.com links found, {matching_links} matched query")
+        print(f"  DEBUG: Total hexload.com links found: {hexload_links}")
+        print(f"  DEBUG: Links matching query '{query}': {matching_links}")
         
         return album_links
     except Exception as e:
