@@ -219,81 +219,42 @@ def scrape_post_album_links(post_url, query):
     try:
         response = user_session.get(post_url, timeout=10, allow_redirects=True)
         response.raise_for_status()
-        
-        print(f"  DEBUG: Response status: {response.status_code}")
-        print(f"  DEBUG: Response URL: {response.url}")
-        print(f"  DEBUG: Response length: {len(response.text)} bytes")
-        
-        # Check if page requires authentication
-        if 'members-access-error' in response.text.lower() or 'do not have permission' in response.text.lower():
-            print(f"  DEBUG: WARNING - Page may require authentication!")
-        
         soup = BeautifulSoup(response.content, 'lxml')
         
         album_links = []
-        # Find the post div with id="post-XXXX" pattern (same as search results)
-        post_div = soup.find('div', id=lambda x: x and x.startswith('post-'))
         
-        print(f"  DEBUG: Post div found: {post_div is not None}")
+        # Find ALL links on the page - no need to find specific divs
+        all_links = soup.find_all('a', href=True)
         
-        if post_div:
-            # Find the entry-content div within the post (where album links are)
-            content_area = post_div.find('div', class_='entry-content')
-            if not content_area:
-                # Fallback: try post-contents or any div with entry-content in class
-                content_area = post_div.find('div', class_=lambda x: x and 'entry-content' in str(x) if x else False)
-            
-            if content_area:
-                classes = content_area.get('class', [])
-                print(f"  DEBUG: Content area found with classes: {classes}")
-            else:
-                print(f"  DEBUG: Content area NOT found in post div")
-        else:
-            print(f"  DEBUG: Post div NOT found, searching entire page")
-            # Fallback: search for entry-content anywhere
-            content_area = soup.find('div', class_='entry-content')
-            if not content_area:
-                content_area = soup.find('div', class_=lambda x: x and 'entry-content' in str(x) if x else False)
+        query_lower = query.lower()
+        hexload_count = 0
+        matching_count = 0
         
-        if not content_area:
-            # Last resort: search entire page
-            content_area = soup
-            print(f"  DEBUG: Using entire page as content area (entry-content not found)")
-        else:
-            classes = content_area.get('class', [])
-            print(f"  DEBUG: Content area found with classes: {classes}")
-        
-        # Find all links in the content area
-        links = content_area.find_all('a', href=True)
-        print(f"  DEBUG: Found {len(links)} total links in content area")
-        
-        hexload_links = 0
-        matching_links = 0
-        
-        for link in links:
+        for link in all_links:
+            link_url = link.get('href', '')
             link_text = link.get_text(strip=True)
-            link_url = urljoin(BASE_URL, link.get('href', ''))
             
-            if not link_text:
+            # Filter: only hexload.com links
+            if 'hexload.com' not in link_url:
                 continue
             
-            # Check if it's a hexload.com download link
-            is_download_link = 'hexload.com' in link_url
+            hexload_count += 1
             
-            if is_download_link:
-                hexload_links += 1
-                link_text_lower = link_text.lower()
-                query_lower = query.lower()
-                # Check if link text contains the query (case-insensitive)
-                if query_lower in link_text_lower:
-                    matching_links += 1
-                    album_links.append({
-                        'text': link_text,
-                        'url': link_url
-                    })
+            # Filter: link text must contain the query
+            if not link_text or query_lower not in link_text.lower():
+                continue
+            
+            matching_count += 1
+            # Make sure URL is absolute
+            full_url = urljoin(BASE_URL, link_url)
+            
+            album_links.append({
+                'text': link_text,
+                'url': full_url
+            })
         
-        print(f"  DEBUG: Total hexload.com links found: {hexload_links}")
-        print(f"  DEBUG: Links matching query '{query}': {matching_links}")
+        print(f"  DEBUG: Total hexload.com links found: {hexload_count}")
+        print(f"  DEBUG: Links matching query '{query}': {matching_count}")
         
         return album_links
     except Exception as e:
