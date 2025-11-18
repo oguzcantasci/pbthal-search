@@ -237,11 +237,17 @@ def scrape_post_album_links(post_url, query):
             link_text = link.get_text(strip=True)
             link_url = urljoin(BASE_URL, link.get('href', ''))
             
-            # Check if link text contains the query (case-insensitive)
-            # Also check for common album link patterns (Artist - Album)
-            if query.lower() in link_text.lower() and link_text:
-                # Additional check: should look like an album link (contains dash or common patterns)
-                if ' - ' in link_text or len(link_text) > 5:
+            if not link_text:
+                continue
+            
+            # Check if it's a hexload.com download link
+            is_download_link = 'hexload.com' in link_url
+            
+            if is_download_link:
+                link_text_lower = link_text.lower()
+                query_lower = query.lower()
+                # Check if link text contains the query (case-insensitive)
+                if query_lower in link_text_lower:
                     album_links.append({
                         'text': link_text,
                         'url': link_url
