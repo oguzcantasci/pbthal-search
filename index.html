@@ -124,10 +124,27 @@
             text-decoration: none;
             display: block;
             font-size: 16px;
+            line-height: 1.6;
         }
         
         .result-item a:hover {
             color: #667eea;
+        }
+        
+        .result-album {
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+        
+        .result-album strong {
+            font-weight: 600;
+            color: #667eea;
+        }
+        
+        .result-meta {
+            font-size: 14px;
+            color: #666;
+            font-style: italic;
         }
         
         .no-results {
@@ -223,10 +240,25 @@
             searchButton.disabled = false;
         }
         
-        function formatResult(result) {
-            // Format: "Album Name (Post Title, Date)"
-            const datePart = result.postDate ? `, ${result.postDate}` : '';
-            return `${result.album} (${result.postTitle}${datePart})`;
+        function highlightMatch(text, query) {
+            if (!query) return text;
+            // Escape special regex characters in the query
+            const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            // Create regex that matches the query (case-insensitive)
+            const regex = new RegExp(`(${escapedQuery})`, 'gi');
+            return text.replace(regex, '<strong>$1</strong>');
+        }
+        
+        function formatResult(result, query) {
+            // Format: "Artist - Media Name (size)" on first line
+            // "Series (Date)" on second line
+            // Make matching search query bold
+            const datePart = result.postDate ? ` (${result.postDate})` : '';
+            const highlightedAlbum = highlightMatch(result.album, query);
+            return `
+                <div class="result-album">${highlightedAlbum}</div>
+                <div class="result-meta">${result.postTitle}${datePart}</div>
+            `;
         }
         
         function displayLoginPrompt() {
@@ -316,14 +348,14 @@
             });
         }
         
-        function displayResults(results) {
+        function displayResults(results, query = '') {
             if (results.length === 0) {
                 resultsDiv.innerHTML = '<div class="no-results">No results found. Try a different search query.</div>';
                 return;
             }
             
             resultsDiv.innerHTML = results.map(result => {
-                const formattedText = formatResult(result);
+                const formattedText = formatResult(result, query);
                 return `
                     <div class="result-item">
                         <a href="${result.url}" target="_blank" rel="noopener noreferrer">
@@ -359,7 +391,7 @@
                 if (data.requiresAuth) {
                     displayLoginPrompt();
                 } else {
-                    displayResults(data.results || []);
+                    displayResults(data.results || [], query);
                 }
             } catch (error) {
                 showError(`Error: ${error.message}`);
