@@ -69,27 +69,93 @@ def index():
     """Serve the main HTML page"""
     return send_from_directory('.', 'index.html')
 
+def parse_netscape_cookies(cookie_file_content):
+    """Parse Netscape cookie format (from browser extensions like cookies.txt)
+    Format: domain	flag	path	secure	expiration	name	value
+    """
+    cookies_dict = {}
+    for line in cookie_file_content.split('\n'):
+        line = line.strip()
+        # Skip comments and empty lines
+        if not line or line.startswith('#'):
+            continue
+        
+        # Parse tab-separated values
+        parts = line.split('\t')
+        if len(parts) >= 7:
+            domain = parts[0]
+            # flag = parts[1]  # Not needed
+            # path = parts[2]  # Not needed
+            # secure = parts[3]  # Not needed
+            expiration = parts[4]
+            name = parts[5]
+            value = parts[6]
+            
+            # Check if cookie is expired (if expiration is not 0 and is in the past)
+            if expiration != '0':
+                try:
+                    exp_time = int(expiration)
+                    if exp_time < time.time():
+                        print(f"  Skipping expired cookie: {name}")
+                        continue
+                except:
+                    pass
+            
+            # Only include cookies for tonepoet.fans
+            if 'tonepoet.fans' in domain:
+                cookies_dict[name] = value
+    
+    return cookies_dict
+
 @app.route('/set-cookies', methods=['POST'])
 def set_cookies():
-    """Store forum cookies from user's browser session"""
+    """Store forum cookies from user's browser session
+    Accepts either:
+    - JSON with 'cookies' field (text format: "name1=value1; name2=value2")
+    - JSON with 'cookieFile' field (Netscape format from browser extension)
+    """
     try:
-        cookies_str = request.json.get('cookies', '')
-        if not cookies_str:
-            return jsonify({'error': 'No cookies provided'}), 400
+        # Check if it's a file upload (Netscape format)
+        if 'cookieFile' in request.json:
+            cookie_file_content = request.json.get('cookieFile', '')
+            if not cookie_file_content:
+                return jsonify({'error': 'No cookie file content provided'}), 400
+            
+            # Parse Netscape format
+            cookies_dict = parse_netscape_cookies(cookie_file_content)
+            
+            if not cookies_dict:
+                return jsonify({'error': 'No valid cookies found in file'}), 400
+            
+            print(f"\n=== COOKIE FILE PARSED ===")
+            print(f"Parsed {len(cookies_dict)} cookies from Netscape format:")
+            for name in cookies_dict.keys():
+                print(f"  - {name}")
         
-        # Parse cookie string (format: "name1=value1; name2=value2")
-        cookies_dict = {}
-        for cookie in cookies_str.split(';'):
-            cookie = cookie.strip()
-            if '=' in cookie:
-                name, value = cookie.split('=', 1)
-                cookies_dict[name.strip()] = value.strip()
+        # Otherwise, parse as text format
+        elif 'cookies' in request.json:
+            cookies_str = request.json.get('cookies', '')
+            if not cookies_str:
+                return jsonify({'error': 'No cookies provided'}), 400
+            
+            # Parse cookie string (format: "name1=value1; name2=value2")
+            cookies_dict = {}
+            for cookie in cookies_str.split(';'):
+                cookie = cookie.strip()
+                if '=' in cookie:
+                    name, value = cookie.split('=', 1)
+                    cookies_dict[name.strip()] = value.strip()
+        else:
+            return jsonify({'error': 'No cookies or cookieFile provided'}), 400
         
         # Store in Flask session
         session['forum_cookies'] = cookies_dict
-        return jsonify({'success': True, 'message': 'Cookies saved successfully'})
+        print(f"Cookies stored in Flask session: {list(cookies_dict.keys())}")
+        return jsonify({'success': True, 'message': f'Cookies saved successfully ({len(cookies_dict)} cookies)'})
     except Exception as e:
         print(f"Error saving cookies: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
 def scrape_search_results(query):
