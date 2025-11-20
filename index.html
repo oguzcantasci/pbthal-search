@@ -158,6 +158,25 @@
             flex: 1;
         }
         
+        .result-meta .series-link {
+            color: #667eea;
+            text-decoration: none;
+        }
+        
+        .result-meta .series-link:hover {
+            text-decoration: underline;
+        }
+        
+        .album-link {
+            color: #333;
+            text-decoration: none;
+            display: block;
+        }
+        
+        .album-link:hover {
+            color: #667eea;
+        }
+        
         .result-date {
             margin-left: 20px;
             white-space: nowrap;
@@ -271,11 +290,16 @@
             // Make matching search query bold
             const highlightedAlbum = highlightMatch(result.album, query);
             const datePart = result.postDate ? result.postDate : '';
+            const seriesLink = result.postUrl 
+                ? `<a href="${result.postUrl}" target="_blank" rel="noopener noreferrer" class="series-link">${result.postTitle}</a>`
+                : result.postTitle;
             return `
                 <div class="result-content">
-                    <div class="result-album">${highlightedAlbum}</div>
+                    <a href="${result.url}" target="_blank" rel="noopener noreferrer" class="album-link">
+                        <div class="result-album">${highlightedAlbum}</div>
+                    </a>
                     <div class="result-meta-line">
-                        <div class="result-meta">${result.postTitle}</div>
+                        <div class="result-meta">${seriesLink}</div>
                         ${datePart ? `<div class="result-date">${datePart}</div>` : ''}
                     </div>
                 </div>

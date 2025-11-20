@@ -453,6 +453,7 @@ def search():
                         'album': link['text'],
                         'url': link['url'],
                         'postTitle': post['title'],
+                        'postUrl': post['url'],
                         'postDate': post_date
                     })
                 
