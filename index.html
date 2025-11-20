@@ -112,9 +112,6 @@
             border-radius: 8px;
             border-left: 4px solid #667eea;
             transition: transform 0.2s, box-shadow 0.2s;
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
         }
         
         .result-item:hover {
@@ -125,10 +122,7 @@
         .result-item a {
             color: #333;
             text-decoration: none;
-            display: flex;
-            flex: 1;
-            justify-content: space-between;
-            align-items: flex-start;
+            display: block;
             font-size: 16px;
             line-height: 1.6;
         }
@@ -151,16 +145,20 @@
             color: #667eea;
         }
         
-        .result-meta {
+        .result-meta-line {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             font-size: 14px;
             color: #666;
             font-style: italic;
         }
         
+        .result-meta {
+            flex: 1;
+        }
+        
         .result-date {
-            font-size: 14px;
-            color: #666;
-            font-style: italic;
             margin-left: 20px;
             white-space: nowrap;
         }
