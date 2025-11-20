@@ -267,16 +267,18 @@
         
         function formatResult(result, query) {
             // Format: "Artist - Media Name (size)" on first line
-            // "Series" on second line, with date on the right
+            // "Series" and "Date" on second line (date on the right)
             // Make matching search query bold
             const highlightedAlbum = highlightMatch(result.album, query);
             const datePart = result.postDate ? result.postDate : '';
             return `
                 <div class="result-content">
                     <div class="result-album">${highlightedAlbum}</div>
-                    <div class="result-meta">${result.postTitle}</div>
+                    <div class="result-meta-line">
+                        <div class="result-meta">${result.postTitle}</div>
+                        ${datePart ? `<div class="result-date">${datePart}</div>` : ''}
+                    </div>
                 </div>
-                ${datePart ? `<div class="result-date">${datePart}</div>` : ''}
             `;
         }
         
