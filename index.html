@@ -403,9 +403,7 @@
                 const formattedText = formatResult(result, query);
                 return `
                     <div class="result-item">
-                        <a href="${result.url}" target="_blank" rel="noopener noreferrer">
-                            ${formattedText}
-                        </a>
+                        ${formattedText}
                     </div>
                 `;
             }).join('');
