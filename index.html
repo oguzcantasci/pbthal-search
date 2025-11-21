@@ -105,6 +105,50 @@
             margin-top: 30px;
         }
         
+        .status-bar {
+            margin-top: 10px;
+            margin-bottom: 20px;
+            padding: 12px 20px;
+            border-radius: 999px;
+            border: 1px solid #d0d4f7;
+            background: linear-gradient(135deg, #eef4ff, #f9fbff);
+            color: #1f2c55;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            box-shadow: 0 6px 18px rgba(31, 44, 85, 0.08);
+        }
+
+        .status-bar .status-value {
+            padding: 5px 12px;
+            border-radius: 999px;
+            font-size: 0.85em;
+        }
+
+        .status-bar.logged-in {
+            background: linear-gradient(135deg, #dcf4e1, #e8fff0);
+            border-color: #8dd0b0;
+            color: #13522a;
+        }
+
+        .status-bar.logged-in .status-value {
+            background: rgba(19, 82, 42, 0.12);
+            color: #13522a;
+        }
+
+        .status-bar.not-logged-in {
+            background: linear-gradient(135deg, #fff4e6, #ffe8dd);
+            border-color: #ffbfa2;
+            color: #7a3202;
+        }
+
+        .status-bar.not-logged-in .status-value {
+            background: rgba(122, 50, 2, 0.12);
+            color: #7a3202;
+        }
+        
         .result-item {
             padding: 15px;
             margin-bottom: 10px;
