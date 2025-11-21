@@ -255,6 +255,8 @@
         const resultsDiv = document.getElementById('results');
         const loadingDiv = document.getElementById('loading');
         const errorDiv = document.getElementById('errorMessage');
+        const authStatusBar = document.getElementById('authStatusBar');
+        const authStatusValue = document.getElementById('authStatusValue');
         
         function showError(message) {
             errorDiv.textContent = message;
@@ -275,19 +277,41 @@
             searchButton.disabled = false;
         }
         
+        function updateStatusBar(loggedIn, errorMessage = '') {
+            authStatusBar.classList.toggle('logged-in', loggedIn);
+            authStatusBar.classList.toggle('not-logged-in', !loggedIn);
+            authStatusValue.textContent = loggedIn ? 'Logged in' : 'Not logged in';
+            authStatusValue.title = errorMessage || (loggedIn ? 'Authenticated' : 'Not authenticated');
+        }
+        
+        async function checkAuthStatus(showPrompt = false) {
+            try {
+                const response = await fetch('/auth-status', {
+                    credentials: 'include'
+                });
+                const data = await response.json();
+                updateStatusBar(data.loggedIn, data.error);
+                if (!data.loggedIn && showPrompt) {
+                    displayLoginPrompt('You are not logged in. Use the instructions below to export cookies.');
+                }
+                return data.loggedIn;
+            } catch (error) {
+                updateStatusBar(false, error.message);
+                if (showPrompt) {
+                    displayLoginPrompt('Unable to verify login state. Please log in and upload cookies.');
+                }
+                return false;
+            }
+        }
+        
         function highlightMatch(text, query) {
             if (!query) return text;
-            // Escape special regex characters in the query
             const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            // Create regex that matches the query (case-insensitive)
             const regex = new RegExp(`(${escapedQuery})`, 'gi');
             return text.replace(regex, '<strong>$1</strong>');
         }
         
         function formatResult(result, query) {
-            // Format: "Artist - Media Name (size)" on first line
-            // "Series" and "Date" on second line (date on the right)
-            // Make matching search query bold
             const highlightedAlbum = highlightMatch(result.album, query);
             const datePart = result.postDate ? result.postDate : '';
             const seriesLink = result.postUrl 
@@ -306,84 +330,58 @@
             `;
         }
         
-        function displayLoginPrompt() {
+        function displayLoginPrompt(message = '') {
             resultsDiv.innerHTML = `
                 <div class="login-prompt">
                     <h3>Login Required</h3>
-                    <p>You need to log in to the forum to search for albums.</p>
-                    <ol style="text-align: left; max-width: 500px; margin: 20px auto; color: #856404;">
-                        <li>Click the button below to open the forum login page</li>
-                        <li>Log in to tonepoet.fans in the new tab</li>
-                        <li><strong>Option A (Recommended):</strong> Use a browser extension like "cookies.txt" to export cookies as a .txt file, then upload it below</li>
-                        <li><strong>Option B:</strong> Open browser DevTools (F12 or Cmd+Option+I), go to Application/Storage → Cookies → https://tonepoet.fans, copy cookies, and paste them below</li>
-                        <li>Click "Save Cookies"</li>
-                    </ol>
-                    <a href="https://tonepoet.fans/wp-login.php" target="_blank" rel="noopener noreferrer" style="margin-bottom: 20px; display: inline-block;">
-                        Go to Forum Login
-                    </a>
-                    <div style="margin-top: 20px;">
+                    <p>You need to be logged in to tonepoet.fans to search.</p>
+                    ${message ? `<p style="font-weight:600;color:#944f00;">${message}</p>` : ''}
+                    <p style="margin-top:0;">
+                        Install one of these extensions to export your cookies as a Netscape cookie file:
+                    </p>
+                    <ul style="text-align: left; margin: 0 0 15px 20px;">
+                        <li><a href="https://addons.mozilla.org/en-CA/firefox/addon/cookies-txt/" target="_blank" rel="noopener noreferrer">cookies.txt (Firefox)</a></li>
+                        <li><a href="https://chromewebstore.google.com/detail/get-cookiestxt-locally/cclelndahbckbenkjhflpdbgdldlbecc?pli=1" target="_blank" rel="noopener noreferrer">Get cookies.txt LOCALLY (Chrome)</a></li>
+                    </ul>
+                    <div style="margin-top: 10px;">
+                        <label for="cookieFileInput" style="display:block; margin-bottom: 8px; font-weight:600;">Upload the exported .txt file:</label>
                         <input 
                             type="file" 
                             id="cookieFileInput" 
                             accept=".txt"
-                            style="margin-bottom: 10px; display: block; width: 100%; max-width: 500px; padding: 8px; border: 1px solid #ccc; border-radius: 4px;"
+                            style="display: block; width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px;"
                         />
-                        <div style="text-align: center; margin: 10px 0; color: #666; font-size: 14px;">OR</div>
-                        <textarea 
-                            id="cookieInput" 
-                            placeholder="Paste cookies here (format: name1=value1; name2=value2)"
-                            style="width: 100%; max-width: 500px; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-family: monospace; font-size: 12px;"
-                            rows="3"
-                        ></textarea>
                         <button 
                             id="saveCookiesBtn" 
                             style="margin-top: 10px; padding: 10px 20px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer;"
                         >
-                            Save Cookies
+                            Upload Cookies File
                         </button>
                     </div>
+                    <p style="margin-top: 15px; font-size: 14px;">Open <a href="https://tonepoet.fans/wp-login.php" target="_blank" rel="noopener noreferrer">tonepoet.fans login</a> in a new tab, install the extension, export cookies, then upload.</p>
                 </div>
             `;
-            
-            // Add event listener for save cookies button
             document.getElementById('saveCookiesBtn').addEventListener('click', async () => {
                 const fileInput = document.getElementById('cookieFileInput');
-                const cookieInput = document.getElementById('cookieInput');
-                
-                let payload = {};
-                
-                // Check if file was uploaded
-                if (fileInput.files && fileInput.files[0]) {
-                    const file = fileInput.files[0];
-                    const fileContent = await file.text();
-                    payload.cookieFile = fileContent;
-                } else {
-                    // Otherwise use text input
-                    const cookies = cookieInput.value.trim();
-                    if (!cookies) {
-                        showError('Please upload a cookie file or paste your cookies');
-                        return;
-                    }
-                    payload.cookies = cookies;
+                if (!fileInput.files || !fileInput.files[0]) {
+                    showError('Please select a cookies.txt file exported by the extension.');
+                    return;
                 }
-                
                 try {
+                    const content = await fileInput.files[0].text();
                     const response = await fetch('/set-cookies', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
                         },
                         credentials: 'include',
-                        body: JSON.stringify(payload)
+                        body: JSON.stringify({ cookieFile: content })
                     });
-                    
                     const data = await response.json();
                     if (data.success) {
-                        showError('Cookies saved! Try searching again.');
-                        // Optionally trigger a search automatically
-                        setTimeout(() => {
-                            searchForm.dispatchEvent(new Event('submit'));
-                        }, 1000);
+                        showError('Cookies uploaded! Trying search again...');
+                        checkAuthStatus();
+                        setTimeout(() => searchForm.dispatchEvent(new Event('submit')), 1000);
                     } else {
                         showError(data.error || 'Failed to save cookies');
                     }
@@ -403,7 +401,7 @@
                 const formattedText = formatResult(result, query);
                 return `
                     <div class="result-item">
-                        ${formattedText}
+                            ${formattedText}
                     </div>
                 `;
             }).join('');
@@ -411,26 +409,20 @@
         
         searchForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            
             const query = searchInput.value.trim();
             if (!query) {
                 showError('Please enter a search query');
                 return;
             }
-            
             showLoading();
-            
             try {
                 const response = await fetch(`/search?q=${encodeURIComponent(query)}`, {
-                    credentials: 'include'  // Include cookies for session management
+                    credentials: 'include'
                 });
                 const data = await response.json();
-                
                 if (!response.ok) {
                     throw new Error(data.error || 'Search failed');
                 }
-                
-                // Check if authentication is required
                 if (data.requiresAuth) {
                     displayLoginPrompt();
                 } else {
@@ -442,6 +434,10 @@
             } finally {
                 hideLoading();
             }
+        });
+        
+        window.addEventListener('load', () => {
+            checkAuthStatus(true);
         });
     </script>
 </body>
