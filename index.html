@@ -453,11 +453,12 @@
                     });
                     const data = await response.json();
                     if (data.success) {
-                        showError('Cookies uploaded! Trying search again...');
+                        showError('Cookies uploaded and validated! Trying search again...');
                         checkAuthStatus();
                         setTimeout(() => searchForm.dispatchEvent(new Event('submit')), 1000);
                     } else {
-                        showError(data.error || 'Failed to save cookies');
+                        showError(data.error || 'Failed to validate cookies. Please try again.');
+                        // Keep showing the login prompt - don't hide it
                     }
                 } catch (error) {
                     showError(`Error: ${error.message}`);
