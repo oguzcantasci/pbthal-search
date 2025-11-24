@@ -14,43 +14,23 @@ CORS(app, supports_credentials=True)  # Enable credentials for cookie passthroug
 BASE_URL = 'https://tonepoet.fans'
 
 def get_authenticated_session():
-    """Get or create a shared requests session with user's forum cookies"""
-    # Use a shared session per user (stored in Flask session)
+    """Get or create a requests session with user's forum cookies"""
+    # Create a new session and restore cookies from Flask session
     # This allows WordPress to set additional session cookies that persist across requests
-    session_key = 'requests_session'
+    # Note: We can't store requests.Session objects in Flask session (not serializable),
+    # so we create a new session each time but restore cookies from Flask session
+    user_session = requests.Session()
+    user_session.trust_env = False  # ignore HTTP(S)_PROXY and similar env vars
+    user_session.proxies = {"http": None, "https": None}
+    user_session.headers.update({
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36'
+    })
     
-    if session_key not in session:
-        # Create new session
-        user_session = requests.Session()
-        user_session.trust_env = False  # ignore HTTP(S)_PROXY and similar env vars
-        user_session.proxies = {"http": None, "https": None}
-        user_session.headers.update({
-            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36'
-        })
-        
-        # Add stored cookies if available
-        if 'forum_cookies' in session:
-            user_session.cookies.update(session['forum_cookies'])
-        
-        # Store session object (Note: we can't pickle requests.Session, so we'll store cookies instead)
-        # Actually, we can't store the session object directly in Flask session
-        # Instead, we'll create a new session but restore cookies from Flask session
-        # The key is to update Flask session cookies after each request
-        return user_session
-    else:
-        # Reuse existing session by creating new one with stored cookies
-        user_session = requests.Session()
-        user_session.trust_env = False
-        user_session.proxies = {"http": None, "https": None}
-        user_session.headers.update({
-            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36'
-        })
-        
-        # Restore cookies from Flask session (including any new ones WordPress set)
-        if 'forum_cookies' in session:
-            user_session.cookies.update(session['forum_cookies'])
-        
-        return user_session
+    # Restore cookies from Flask session (including any new ones WordPress set)
+    if 'forum_cookies' in session:
+        user_session.cookies.update(session['forum_cookies'])
+    
+    return user_session
 
 def update_session_cookies(user_session):
     """Update Flask session with cookies from requests session (including new ones WordPress might set)"""
