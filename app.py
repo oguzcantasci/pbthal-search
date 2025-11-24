@@ -44,6 +44,72 @@ def update_session_cookies(user_session):
         for cookie in user_session.cookies:
             session['forum_cookies'][cookie.name] = cookie.value
 
+def check_auth_required(url):
+    """Check if authentication is required to access a URL
+    Returns: (is_authenticated, error_message)
+    - is_authenticated: True if cookies work and page is accessible, False if auth required
+    - error_message: None if authenticated, error string if not
+    """
+    user_session = get_authenticated_session()
+    
+    try:
+        response = user_session.get(url, timeout=10, allow_redirects=True)
+        response.raise_for_status()
+        
+        # Update Flask session with any new cookies WordPress might have set
+        update_session_cookies(user_session)
+        
+        soup = BeautifulSoup(response.content, 'lxml')
+        page_text = soup.get_text().lower()
+        page_html = str(soup).lower()
+        page_title = soup.find('title')
+        title_text = page_title.get_text().lower() if page_title else ''
+        response_lower = response.text.lower()
+        
+        # Check for permission error indicators
+        permission_indicators = [
+            'sorry, but you do not have permission to view this content',
+            'do not have permission to view this content',
+            'please register in order to view this',
+            'members-access-error'
+        ]
+        
+        for indicator in permission_indicators:
+            if indicator in response_lower:
+                return False, 'Cookies are invalid or expired. Please log in again and export fresh cookies.'
+        
+        # Check for members-access-error div
+        members_error_div = (soup.find('div', class_='members-access-error') or 
+                            soup.find('div', class_=lambda x: x and 'members-access-error' in str(x) if x else False))
+        if members_error_div:
+            return False, 'Cookies are invalid or expired. Please log in again and export fresh cookies.'
+        
+        # Check for login page indicators
+        login_indicators = [
+            'wp-login.php' in response.url.lower(),
+            'log in' in title_text,
+            'login' in title_text and 'required' in page_text,
+            soup.find('form', {'id': 'loginform'}),
+            soup.find('form', {'name': 'loginform'}),
+            'you must be logged in' in page_text,
+            'please log in' in page_text,
+            'login required' in page_text,
+            'you do not have permission to view this content' in page_text,
+            'members-access-error' in page_html,
+            'please register in order to view this' in page_text,
+            'do not have permission' in page_text
+        ]
+        
+        if any(login_indicators):
+            return False, 'Cookies are invalid or expired. Please log in again and export fresh cookies.'
+        
+        # If we get here, authentication worked
+        return True, None
+        
+    except Exception as e:
+        print(f"Error checking authentication: {e}")
+        return False, f'Error validating cookies: {str(e)}'
+
 @app.route('/')
 def index():
     """Serve the main HTML page"""
