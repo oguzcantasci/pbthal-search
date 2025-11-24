@@ -138,6 +138,18 @@ def set_cookies():
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
+@app.route('/auth-status', methods=['GET'])
+def auth_status():
+    """Check if user has uploaded cookies"""
+    has_cookies = 'forum_cookies' in session
+    cookie_count = len(session.get('forum_cookies', {}))
+    
+    return jsonify({
+        'loggedIn': has_cookies and cookie_count > 0,
+        'cookieCount': cookie_count,
+        'error': None if (has_cookies and cookie_count > 0) else 'No cookies uploaded'
+    })
+
 def scrape_search_results(query):
     """Scrape the forum search results page and extract post information
     Returns tuple: (posts, requires_auth) where requires_auth is True if login is needed"""
