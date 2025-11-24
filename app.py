@@ -197,7 +197,23 @@ def set_cookies():
         # Store in Flask session
         session['forum_cookies'] = cookies_dict
         print(f"Cookies stored in Flask session: {list(cookies_dict.keys())}")
-        return jsonify({'success': True, 'message': f'Cookies saved successfully ({len(cookies_dict)} cookies)'})
+        
+        # Validate cookies by checking a protected page
+        validation_url = 'https://tonepoet.fans/the-holy-grail-reflektor-series-october-2025/'
+        is_authenticated, error_message = check_auth_required(validation_url)
+        
+        if not is_authenticated:
+            # Remove invalid cookies from session
+            session.pop('forum_cookies', None)
+            return jsonify({
+                'success': False,
+                'error': error_message or 'Cookies are invalid or expired. Please log in again and export fresh cookies.'
+            }), 400
+        
+        return jsonify({
+            'success': True,
+            'message': f'Cookies saved and validated successfully ({len(cookies_dict)} cookies)'
+        })
     except Exception as e:
         print(f"Error saving cookies: {e}")
         import traceback
