@@ -28,9 +28,22 @@ python app.py
 **Important:** The tonepoet.fans forum requires users to be logged in to search and access content. 
 
 - When you perform a search, if you're not logged in, the app will display a login prompt
-- Click the "Go to Forum Login" button to open the forum login page in a new tab
-- After logging in to the forum, return to this app and try your search again
-- The app will automatically detect when authentication is required and guide you to log in
+- Install a browser extension to export cookies (cookies.txt format):
+  - Firefox: [cookies.txt](https://addons.mozilla.org/en-CA/firefox/addon/cookies-txt/)
+  - Chrome: [Get cookies.txt LOCALLY](https://chromewebstore.google.com/detail/get-cookiestxt-locally/cclelndahbckbenkjhflpdbgdldlbecc)
+- Log in to tonepoet.fans, export your cookies, and upload the .txt file
+- The app will validate your cookies and allow you to search
+
+## Real-Debrid Integration
+
+The tool includes Real-Debrid integration for unrestricted downloads:
+
+1. Get your Real-Debrid API token from [real-debrid.com/apitoken](https://real-debrid.com/apitoken)
+2. Enter your token in the Real-Debrid status section
+3. Once connected, each search result will have an "Unrestrict via Real-Debrid" button
+4. Click the button to unrestrict the link and start downloading
+
+**Note:** This is a local application. Your API token is stored in the Flask session and never sent anywhere except to Real-Debrid's API.
 
 ## How It Works
 

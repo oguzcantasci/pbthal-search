@@ -12,6 +12,7 @@ app.secret_key = os.urandom(24)  # Required for Flask sessions
 CORS(app, supports_credentials=True)  # Enable credentials for cookie passthrough
 
 BASE_URL = 'https://tonepoet.fans'
+REAL_DEBRID_API_BASE = 'https://api.real-debrid.com/rest/1.0'
 
 def get_authenticated_session():
     """Get or create a requests session with user's forum cookies"""
@@ -231,6 +232,131 @@ def auth_status():
         'cookieCount': cookie_count,
         'error': None if (has_cookies and cookie_count > 0) else 'No cookies uploaded'
     })
+
+# Real-Debrid API Integration (Token-based)
+
+@app.route('/realdebrid/status', methods=['GET'])
+def realdebrid_status():
+    """Check Real-Debrid connection status and validate token"""
+    token = session.get('realdebrid_token')
+    if not token:
+        return jsonify({
+            'connected': False,
+            'error': 'No token stored'
+        })
+    
+    # Validate token by making a simple API call
+    try:
+        headers = {
+            'Authorization': f'Bearer {token}'
+        }
+        response = requests.get(f"{REAL_DEBRID_API_BASE}/user", headers=headers, timeout=10)
+        if response.status_code == 401:
+            # Token is invalid, clear it
+            session.pop('realdebrid_token', None)
+            return jsonify({
+                'connected': False,
+                'error': 'Token is invalid or expired'
+            })
+        response.raise_for_status()
+        return jsonify({
+            'connected': True,
+            'username': response.json().get('username', 'Unknown')
+        })
+    except Exception as e:
+        print(f"Error checking Real-Debrid status: {e}")
+        return jsonify({
+            'connected': False,
+            'error': str(e)
+        })
+
+@app.route('/realdebrid/set-token', methods=['POST'])
+def realdebrid_set_token():
+    """Store Real-Debrid API token from user"""
+    data = request.get_json() or {}
+    token = data.get('token', '').strip()
+    
+    if not token:
+        return jsonify({'error': 'Token is required'}), 400
+    
+    # Validate token by making a test API call
+    try:
+        headers = {
+            'Authorization': f'Bearer {token}'
+        }
+        response = requests.get(f"{REAL_DEBRID_API_BASE}/user", headers=headers, timeout=10)
+        if response.status_code == 401:
+            return jsonify({'error': 'Invalid token. Please check your token from https://real-debrid.com/apitoken'}), 400
+        response.raise_for_status()
+        
+        # Token is valid, store it
+        session['realdebrid_token'] = token
+        user_data = response.json()
+        return jsonify({
+            'success': True,
+            'username': user_data.get('username', 'Unknown'),
+            'message': 'Token saved successfully'
+        })
+    except requests.exceptions.RequestException as e:
+        print(f"Error validating Real-Debrid token: {e}")
+        return jsonify({'error': f'Failed to validate token: {str(e)}'}), 500
+    except Exception as e:
+        print(f"Error setting Real-Debrid token: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/realdebrid/unrestrict', methods=['POST'])
+def realdebrid_unrestrict():
+    """Unrestrict a link via Real-Debrid"""
+    token = session.get('realdebrid_token')
+    if not token:
+        return jsonify({'error': 'Real-Debrid not connected. Please enter your API token first.'}), 401
+    
+    data = request.get_json() or {}
+    original_link = data.get('link')
+    if not original_link:
+        return jsonify({'error': 'Link parameter is required'}), 400
+    
+    try:
+        headers = {
+            'Authorization': f'Bearer {token}'
+        }
+        payload = {
+            'link': original_link
+        }
+        response = requests.post(f"{REAL_DEBRID_API_BASE}/unrestrict/link", data=payload, headers=headers, timeout=30)
+        
+        if response.status_code == 401:
+            # Token might be invalid, clear it
+            session.pop('realdebrid_token', None)
+            return jsonify({'error': 'Real-Debrid token expired or invalid. Please reconnect.'}), 401
+        
+        if response.status_code != 200:
+            try:
+                error_data = response.json()
+                error_message = error_data.get('error', f"Real-Debrid error (HTTP {response.status_code})")
+            except ValueError:
+                error_message = f"Real-Debrid error (HTTP {response.status_code})"
+            return jsonify({'error': error_message}), response.status_code
+        
+        result = response.json()
+        unrestricted_link = result.get('download')
+        if not unrestricted_link:
+            return jsonify({'error': 'Real-Debrid did not return a download link.'}), 500
+        
+        return jsonify({
+            'download': unrestricted_link,
+            'filename': result.get('filename'),
+            'filesize': result.get('filesize'),
+            'host': result.get('host'),
+            'id': result.get('id'),
+            'original': original_link
+        })
+    except requests.exceptions.RequestException as e:
+        print(f"Real-Debrid request failed: {e}")
+        return jsonify({'error': 'Failed to contact Real-Debrid API. Please try again.'}), 500
+    except Exception as e:
+        print(f"Error in Real-Debrid unrestrict: {e}")
+        return jsonify({'error': str(e)}), 500
 
 def scrape_search_results(query):
     """Scrape the forum search results page and extract post information

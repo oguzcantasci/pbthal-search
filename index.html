@@ -294,14 +294,106 @@
             color: #ffffff;
             font-weight: 600;
         }
+        
+        .rd-button {
+            margin-top: 8px;
+            padding: 8px 16px;
+            background: #ff8951;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        
+        .rd-button:hover {
+            background: #e67a45;
+        }
+        
+        .rd-button:disabled {
+            background: #999;
+            cursor: not-allowed;
+        }
+        
+        .realdebrid-token-input {
+            background: #434663;
+            border: 2px solid #434663;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+            text-align: center;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', 'Helvetica Neue', sans-serif;
+        }
+        
+        .realdebrid-token-input h3 {
+            color: #ffffff;
+            margin-bottom: 15px;
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        .realdebrid-token-input p {
+            color: #f0f0f0;
+            margin-bottom: 15px;
+            line-height: 1.6;
+            font-size: 14px;
+        }
+        
+        .realdebrid-token-input input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 6px;
+            background: rgba(255,255,255,0.1);
+            color: #ffffff;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        
+        .realdebrid-token-input input::placeholder {
+            color: rgba(255,255,255,0.6);
+        }
+        
+        .realdebrid-token-input button {
+            padding: 10px 20px;
+            background: #ff8951;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        
+        .realdebrid-token-input button:hover {
+            background: #e67a45;
+        }
+        
+        .realdebrid-token-input a {
+            color: #ffffff;
+            text-decoration: underline;
+        }
+        
+        .realdebrid-token-input a:hover {
+            color: #e0e0ff;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>PBTHAL Search Tool</h1>
-        <div class="status-bar not-logged-in" id="authStatusBar">
-            <span>Status:</span>
-            <span class="status-value" id="authStatusValue">Checking...</span>
+        <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap; margin-bottom: 20px;">
+            <div class="status-bar not-logged-in" id="authStatusBar">
+                <span>Forum Login:</span>
+                <span class="status-value" id="authStatusValue">Checking...</span>
+            </div>
+            
+            <div class="status-bar not-logged-in" id="rdStatusBar">
+                <span>RealDebrid Login:</span>
+                <span class="status-value" id="rdStatusValue">Checking...</span>
+            </div>
         </div>
         
         <form class="search-form" id="searchForm">
@@ -331,6 +423,9 @@
         const errorDiv = document.getElementById('errorMessage');
         const authStatusBar = document.getElementById('authStatusBar');
         const authStatusValue = document.getElementById('authStatusValue');
+        const rdStatusBar = document.getElementById('rdStatusBar');
+        const rdStatusValue = document.getElementById('rdStatusValue');
+        let realdebridConnected = false;
         
         function showError(message) {
             errorDiv.textContent = message;
@@ -391,6 +486,12 @@
             const seriesLink = result.postUrl 
                 ? `<a href="${result.postUrl}" target="_blank" rel="noopener noreferrer" class="series-link">${result.postTitle}</a>`
                 : result.postTitle;
+            // Escape quotes for data attributes
+            const escapedUrl = result.url.replace(/"/g, '&quot;');
+            const escapedAlbum = result.album.replace(/"/g, '&quot;');
+            const realdebridButton = realdebridConnected 
+                ? `<button class="rd-button" data-url="${escapedUrl}" data-album="${escapedAlbum}">Unrestrict via Real-Debrid</button>`
+                : '';
             return `
                 <div class="result-content">
                     <a href="${result.url}" target="_blank" rel="noopener noreferrer" class="album-link">
@@ -400,8 +501,147 @@
                         <div class="result-meta">${seriesLink}</div>
                         ${datePart ? `<div class="result-date">${datePart}</div>` : ''}
                     </div>
+                    ${realdebridButton}
                 </div>
             `;
+        }
+        
+        async function checkRealDebridStatus() {
+            try {
+                const response = await fetch('/realdebrid/status', {
+                    credentials: 'include'
+                });
+                const data = await response.json();
+                realdebridConnected = !!data.connected;
+                
+                rdStatusBar.classList.toggle('logged-in', realdebridConnected);
+                rdStatusBar.classList.toggle('not-logged-in', !realdebridConnected);
+                rdStatusValue.textContent = realdebridConnected ? 'Connected' : 'Not connected';
+                
+                // Show token input if not connected
+                if (!realdebridConnected) {
+                    showRealDebridTokenInput();
+                } else {
+                    hideRealDebridTokenInput();
+                }
+                
+                return realdebridConnected;
+            } catch (error) {
+                console.error('Error checking Real-Debrid status:', error);
+                realdebridConnected = false;
+                rdStatusValue.textContent = 'Error';
+                showRealDebridTokenInput();
+                return false;
+            }
+        }
+        
+        function showRealDebridTokenInput() {
+            // Check if already shown
+            if (document.getElementById('realdebridTokenInput')) {
+                return;
+            }
+            
+            const tokenHTML = `
+                <div class="realdebrid-token-input" id="realdebridTokenInput">
+                    <h3>Connect Real-Debrid</h3>
+                    <p>Enter your Real-Debrid API token to unrestrict and download links.</p>
+                    <p style="font-size: 12px; margin-bottom: 10px;">
+                        Get your token from: <a href="https://real-debrid.com/apitoken" target="_blank" rel="noopener noreferrer">real-debrid.com/apitoken</a>
+                    </p>
+                    <input 
+                        type="text" 
+                        id="rdTokenInput" 
+                        placeholder="Paste your Real-Debrid API token here"
+                        style="font-family: monospace;"
+                    />
+                    <button id="saveRdTokenBtn">Save Token</button>
+                </div>
+            `;
+            
+            // Insert after status bars
+            const statusContainer = rdStatusBar.parentElement;
+            statusContainer.insertAdjacentHTML('afterend', tokenHTML);
+            
+            // Add event listener
+            document.getElementById('saveRdTokenBtn').addEventListener('click', async () => {
+                const token = document.getElementById('rdTokenInput').value.trim();
+                if (!token) {
+                    showError('Please enter your Real-Debrid API token');
+                    return;
+                }
+                
+                try {
+                    const response = await fetch('/realdebrid/set-token', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        credentials: 'include',
+                        body: JSON.stringify({ token: token })
+                    });
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        showError(`Real-Debrid connected successfully! (${data.username})`);
+                        await checkRealDebridStatus();
+                        // Refresh results to show Real-Debrid buttons
+                        if (resultsDiv.innerHTML && !resultsDiv.innerHTML.includes('no-results')) {
+                            const currentQuery = searchInput.value;
+                            if (currentQuery) {
+                                searchForm.dispatchEvent(new Event('submit'));
+                            }
+                        }
+                    } else {
+                        showError(`Real-Debrid error: ${data.error}`);
+                    }
+                } catch (error) {
+                    showError(`Error: ${error.message}`);
+                }
+            });
+        }
+        
+        function hideRealDebridTokenInput() {
+            const tokenInput = document.getElementById('realdebridTokenInput');
+            if (tokenInput) {
+                tokenInput.remove();
+            }
+        }
+        
+        async function handleRealDebridUnrestrict(link, albumName) {
+            const confirmed = confirm(`Do you want to unrestrict this link and start downloading using Real-Debrid?\n\nAlbum: ${albumName}`);
+            if (!confirmed) {
+                return;
+            }
+            
+            try {
+                showError('Unrestricting link via Real-Debrid...');
+                const response = await fetch('/realdebrid/unrestrict', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({ link: link })
+                });
+                
+                const data = await response.json();
+                if (data.error) {
+                    if (data.error.includes('not connected') || data.error.includes('expired') || data.error.includes('invalid')) {
+                        showError('Real-Debrid connection expired. Please reconnect your account.');
+                        realdebridConnected = false;
+                        await checkRealDebridStatus();
+                    } else {
+                        showError(`Real-Debrid error: ${data.error}`);
+                    }
+                    return;
+                }
+                
+                // Open unrestricted link to start download
+                window.open(data.download, '_blank');
+                showError('Unrestricted link generated! Download started in new tab.');
+            } catch (error) {
+                showError(`Error: ${error.message}`);
+            }
         }
         
         function displayLoginPrompt(message = '') {
@@ -480,6 +720,17 @@
                     </div>
                 `;
             }).join('');
+            
+            // Attach event listeners to Real-Debrid buttons
+            if (realdebridConnected) {
+                document.querySelectorAll('.rd-button').forEach(button => {
+                    button.addEventListener('click', () => {
+                        const url = button.getAttribute('data-url');
+                        const album = button.getAttribute('data-album');
+                        handleRealDebridUnrestrict(url, album);
+                    });
+                });
+            }
         }
         
         searchForm.addEventListener('submit', async (e) => {
@@ -511,8 +762,9 @@
             }
         });
         
-        window.addEventListener('load', () => {
+        window.addEventListener('load', async () => {
             checkAuthStatus(true);
+            await checkRealDebridStatus();
         });
     </script>
 </body>
