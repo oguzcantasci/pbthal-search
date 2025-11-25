@@ -1,0 +1,409 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+    padding: 40px;
+}
+
+h1 {
+    color: #333;
+    margin-bottom: 30px;
+    text-align: center;
+    font-size: 2.5em;
+}
+
+.search-form {
+    margin-bottom: 30px;
+}
+
+.search-input-group {
+    display: flex;
+    gap: 10px;
+}
+
+input[type="text"] {
+    flex: 1;
+    padding: 15px;
+    font-size: 16px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    outline: none;
+    transition: border-color 0.3s;
+}
+
+input[type="text"]:focus {
+    border-color: #667eea;
+}
+
+button {
+    padding: 15px 30px;
+    font-size: 16px;
+    background: #667eea;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+button:hover {
+    background: #5568d3;
+}
+
+button:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+}
+
+.loading {
+    text-align: center;
+    padding: 20px;
+    color: #666;
+    display: none;
+}
+
+.loading.active {
+    display: block;
+}
+
+.error {
+    background: #fee;
+    color: #c33;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    display: none;
+}
+
+.error.active {
+    display: block;
+}
+
+.results {
+    margin-top: 30px;
+}
+
+.status-bars-container {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+}
+
+.status-bar {
+    margin: 10px auto 20px auto;
+    padding: 12px 20px;
+    border-radius: 999px;
+    border: 1px solid #d0d4f7;
+    background: linear-gradient(135deg, #eef4ff, #f9fbff);
+    color: #1f2c55;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    box-shadow: 0 6px 18px rgba(31, 44, 85, 0.08);
+    width: fit-content;
+    max-width: 360px;
+}
+
+.status-bar .status-value {
+    padding: 5px 12px;
+    border-radius: 999px;
+    font-size: 0.85em;
+}
+
+.status-bar.logged-in {
+    background: linear-gradient(135deg, #dcf4e1, #e8fff0);
+    border-color: #8dd0b0;
+    color: #13522a;
+}
+
+.status-bar.logged-in .status-value {
+    background: rgba(19, 82, 42, 0.12);
+    color: #13522a;
+}
+
+.status-bar.not-logged-in {
+    background: #ffbfa2;
+    border-color: #ffbfa2;
+    color: #7a3202;
+}
+
+.status-bar.not-logged-in .status-value {
+    background: rgba(122, 50, 2, 0.12);
+    color: #7a3202;
+}
+
+.result-item {
+    padding: 15px;
+    margin-bottom: 10px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border-left: 4px solid #667eea;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.result-item:hover {
+    transform: translateX(5px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.result-item a {
+    color: #333;
+    text-decoration: none;
+    display: block;
+    font-size: 16px;
+    line-height: 1.6;
+}
+
+.result-item a:hover {
+    color: #667eea;
+}
+
+.result-content {
+    flex: 1;
+}
+
+.result-album {
+    font-weight: 500;
+    margin-bottom: 4px;
+}
+
+.result-album strong {
+    font-weight: 600;
+    color: #667eea;
+}
+
+.result-meta-line {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 14px;
+    color: #666;
+    font-style: italic;
+}
+
+.result-meta {
+    flex: 1;
+}
+
+.result-meta .series-link {
+    color: #667eea;
+    text-decoration: none;
+}
+
+.result-meta .series-link:hover {
+    text-decoration: underline;
+}
+
+.album-link {
+    color: #333;
+    text-decoration: none;
+    display: block;
+}
+
+.album-link:hover {
+    color: #667eea;
+}
+
+.result-date {
+    margin-left: 20px;
+    white-space: nowrap;
+}
+
+.no-results {
+    text-align: center;
+    padding: 40px;
+    color: #666;
+    font-size: 18px;
+}
+
+.login-prompt {
+    background: #434663;
+    border: 2px solid #434663;
+    border-radius: 8px;
+    padding: 25px;
+    margin-top: 20px;
+    text-align: center;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', 'Helvetica Neue', sans-serif;
+}
+
+.login-prompt h3 {
+    color: #ffffff;
+    margin-bottom: 15px;
+    font-size: 20px;
+    font-weight: 600;
+}
+
+.login-prompt p {
+    color: #f0f0f0;
+    margin-bottom: 20px;
+    line-height: 1.6;
+}
+
+.login-prompt ul a {
+    display: inline;
+    padding: 0;
+    background: transparent;
+    color: #ffffff;
+    text-decoration: underline;
+    border-radius: 0;
+    font-weight: normal;
+}
+
+.login-prompt ul a:hover {
+    background: transparent;
+    color: #e0e0ff;
+    text-decoration: underline;
+}
+
+.login-prompt > a,
+.login-prompt button {
+    display: inline-block;
+    padding: 12px 30px;
+    background: #ff8951;
+    color: white;
+    text-decoration: none;
+    border-radius: 8px;
+    font-weight: 600;
+    transition: background 0.3s;
+}
+
+.login-prompt > a:hover,
+.login-prompt button:hover {
+    background: #e67a45;
+}
+
+.login-prompt label {
+    color: #ffffff;
+    font-weight: 600;
+}
+
+.login-prompt .file-input {
+    display: block;
+    width: 100%;
+    padding: 10px;
+    border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 4px;
+    background: rgba(255,255,255,0.1);
+    color: #ffffff;
+}
+
+.login-prompt .upload-button {
+    margin-top: 10px;
+    padding: 10px 20px;
+    background: #28a745;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.rd-button {
+    margin-top: 8px;
+    padding: 8px 16px;
+    background: #ff8951;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.rd-button:hover {
+    background: #e67a45;
+}
+
+.rd-button:disabled {
+    background: #999;
+    cursor: not-allowed;
+}
+
+.realdebrid-token-input {
+    background: #434663;
+    border: 2px solid #434663;
+    border-radius: 8px;
+    padding: 20px;
+    margin-top: 20px;
+    text-align: center;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', 'Helvetica Neue', sans-serif;
+}
+
+.realdebrid-token-input h3 {
+    color: #ffffff;
+    margin-bottom: 15px;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.realdebrid-token-input p {
+    color: #f0f0f0;
+    margin-bottom: 15px;
+    line-height: 1.6;
+    font-size: 14px;
+}
+
+.realdebrid-token-input .small-text {
+    font-size: 12px;
+    margin-bottom: 10px;
+}
+
+.realdebrid-token-input input {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 6px;
+    background: rgba(255,255,255,0.1);
+    color: #ffffff;
+    font-size: 14px;
+    margin-bottom: 10px;
+    font-family: monospace;
+}
+
+.realdebrid-token-input input::placeholder {
+    color: rgba(255,255,255,0.6);
+}
+
+.realdebrid-token-input button {
+    padding: 10px 20px;
+    background: #ff8951;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+.realdebrid-token-input button:hover {
+    background: #e67a45;
+}
+
+.realdebrid-token-input a {
+    color: #ffffff;
+    text-decoration: underline;
+}
+
+.realdebrid-token-input a:hover {
+    color: #e0e0ff;
+}
+
