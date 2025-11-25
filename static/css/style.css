@@ -158,6 +158,7 @@ button:disabled {
     border-radius: 8px;
     border-left: 4px solid #667eea;
     transition: transform 0.2s, box-shadow 0.2s;
+    display: flex;
 }
 
 .result-item:hover {
@@ -178,6 +179,14 @@ button:disabled {
 }
 
 .result-content {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+}
+
+.result-main {
     flex: 1;
 }
 
@@ -317,16 +326,19 @@ button:disabled {
 }
 
 .rd-button {
-    margin-top: 8px;
     padding: 8px 16px;
     background: #ff8951;
     color: white;
     border: none;
-    border-radius: 6px;
+    border-radius: 999px;
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
     transition: background 0.3s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
 }
 
 .rd-button:hover {
@@ -336,6 +348,11 @@ button:disabled {
 .rd-button:disabled {
     background: #999;
     cursor: not-allowed;
+}
+
+.rd-button img {
+    width: 18px;
+    height: 18px;
 }
 
 .realdebrid-token-input {

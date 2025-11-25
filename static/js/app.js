@@ -78,16 +78,23 @@ function formatResult(result, query) {
     const escapedUrl = result.url.replace(/"/g, '&quot;');
     const escapedAlbum = result.album.replace(/"/g, '&quot;');
     const realdebridButton = realdebridConnected 
-        ? `<button class="rd-button" data-url="${escapedUrl}" data-album="${escapedAlbum}">Unrestrict via Real-Debrid</button>`
+        ? `
+            <button class="rd-button" data-url="${escapedUrl}" data-album="${escapedAlbum}">
+                <img src="/static/img/realdebrid.svg" alt="" aria-hidden="true" />
+                <span>Unrestrict</span>
+            </button>
+        `
         : '';
     return `
         <div class="result-content">
-            <a href="${result.url}" target="_blank" rel="noopener noreferrer" class="album-link">
-                <div class="result-album">${highlightedAlbum}</div>
-            </a>
-            <div class="result-meta-line">
-                <div class="result-meta">${seriesLink}</div>
-                ${datePart ? `<div class="result-date">${datePart}</div>` : ''}
+            <div class="result-main">
+                <a href="${result.url}" target="_blank" rel="noopener noreferrer" class="album-link">
+                    <div class="result-album">${highlightedAlbum}</div>
+                </a>
+                <div class="result-meta-line">
+                    <div class="result-meta">${seriesLink}</div>
+                    ${datePart ? `<div class="result-date">${datePart}</div>` : ''}
+                </div>
             </div>
             ${realdebridButton}
         </div>
