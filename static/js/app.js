@@ -80,7 +80,7 @@ function formatResult(result, query) {
     const realdebridButton = realdebridConnected 
         ? `
             <button class="rd-button" data-url="${escapedUrl}" data-album="${escapedAlbum}">
-                <img src="/static/img/realdebrid.svg" alt="" aria-hidden="true" />
+                <img src="/static/img/realdebrid.png" alt="" aria-hidden="true" />
                 <span>Unrestrict</span>
             </button>
         `
