@@ -9,10 +9,19 @@ from urllib.parse import urljoin, quote_plus
 import re
 
 app = Flask(__name__)
-app.secret_key = os.environ.get('SECRET_KEY', os.urandom(24))  # Required for Flask sessions
+
+# Get secret key from environment or generate a fixed one
+secret_key = os.environ.get('SECRET_KEY')
+if not secret_key:
+    # Generate a random key and convert to hex string (for development)
+    secret_key = os.urandom(24).hex()
+    print("WARNING: SECRET_KEY not set in environment. Using generated key (not persistent!)")
+
+app.secret_key = secret_key
 CORS(app, supports_credentials=True)  # Enable credentials for cookie passthrough
 
 # Configure Flask-Session for persistent sessions
+app.config['SESSION_TYPE'] = 'filesystem'
 sess = Session()
 sess.init_app(app)
 
