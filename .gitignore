@@ -38,4 +38,10 @@ instance/
 .DS_Store
 Thumbs.db
 
+# Flask Session Storage
+flask_session/
+
+# Environment variables
+.env
+
 

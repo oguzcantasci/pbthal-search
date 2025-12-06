@@ -59,4 +59,48 @@ The tool includes Real-Debrid integration for unrestricted downloads:
 - BeautifulSoup4 (web scraping)
 - HTML/JavaScript (frontend)
 
+## Deployment
+
+This app can be deployed to Render's free tier. Here's how:
+
+### Prerequisites
+- A GitHub account
+- Your code pushed to a GitHub repository
+
+### Steps
+
+1. **Sign up for Render**: Go to https://render.com and create a free account
+
+2. **Create a Web Service**:
+   - Click "New +" → "Web Service"
+   - Connect your GitHub account
+   - Select your `pbthal-search` repository
+
+3. **Configure the Service**:
+   - **Name**: `pbthal-search` (or any name you prefer)
+   - **Region**: Choose closest to you
+   - **Branch**: `main` (or your default branch)
+   - **Root Directory**: Leave empty
+   - **Runtime**: `Python 3`
+   - **Build Command**: `pip install -r requirements.txt`
+   - **Start Command**: `gunicorn app:app --bind 0.0.0.0:$PORT`
+   - **Plan**: Select "Free" tier
+
+4. **Set Environment Variables**:
+   - Scroll to "Environment Variables" section
+   - Click "Add Environment Variable"
+   - **Key**: `SECRET_KEY`
+   - **Value**: Generate with: `python -c "import secrets; print(secrets.token_hex(32))"`
+   - Click "Save Changes"
+
+5. **Deploy**:
+   - Click "Create Web Service"
+   - Wait for build to complete (2-5 minutes)
+   - Your app will be live at `https://your-app-name.onrender.com`
+
+### Notes
+- Free tier instances sleep after 15 minutes of inactivity (first request may be slow)
+- Free tier includes 750 hours/month (enough for 24/7 operation)
+- Each user's credentials are stored in isolated server-side sessions
+
 

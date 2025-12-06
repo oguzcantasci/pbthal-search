@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify, send_from_directory, session
 from flask_cors import CORS
+from flask_session import Session
 import os
 import requests
 from bs4 import BeautifulSoup
@@ -8,8 +9,12 @@ from urllib.parse import urljoin, quote_plus
 import re
 
 app = Flask(__name__)
-app.secret_key = os.urandom(24)  # Required for Flask sessions
+app.secret_key = os.environ.get('SECRET_KEY', os.urandom(24))  # Required for Flask sessions
 CORS(app, supports_credentials=True)  # Enable credentials for cookie passthrough
+
+# Configure Flask-Session for persistent sessions
+sess = Session()
+sess.init_app(app)
 
 BASE_URL = 'https://tonepoet.fans'
 REAL_DEBRID_API_BASE = 'https://api.real-debrid.com/rest/1.0'
@@ -695,5 +700,7 @@ def search():
         return jsonify({'error': f'An error occurred while searching: {error_msg}', 'results': []}), 500
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5001)
+    port = int(os.environ.get('PORT', 5001))
+    debug = os.environ.get('FLASK_ENV') == 'development'
+    app.run(debug=debug, port=port)
 
