@@ -6,9 +6,7 @@ const resultsDiv = document.getElementById('results');
 const loadingDiv = document.getElementById('loading');
 const errorDiv = document.getElementById('errorMessage');
 const authStatusBar = document.getElementById('authStatusBar');
-const authStatusValue = document.getElementById('authStatusValue');
 const rdStatusBar = document.getElementById('rdStatusBar');
-const rdStatusValue = document.getElementById('rdStatusValue');
 
 // State
 let realdebridConnected = false;
@@ -36,8 +34,13 @@ function hideLoading() {
 function updateStatusBar(loggedIn, errorMessage = '') {
     authStatusBar.classList.toggle('logged-in', loggedIn);
     authStatusBar.classList.toggle('not-logged-in', !loggedIn);
-    authStatusValue.textContent = loggedIn ? 'Logged in' : 'Not logged in';
-    authStatusValue.title = errorMessage || (loggedIn ? 'Authenticated' : 'Not authenticated');
+    const authStatusIcon = document.getElementById('authStatusIcon');
+    if (authStatusIcon) {
+        authStatusIcon.innerHTML = loggedIn 
+            ? '<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" fill="currentColor"/></svg>'
+            : '<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" fill="currentColor"/></svg>';
+        authStatusIcon.title = errorMessage || (loggedIn ? 'Authenticated' : 'Not authenticated');
+    }
 }
 
 // Authentication Functions
@@ -112,7 +115,12 @@ async function checkRealDebridStatus() {
         
         rdStatusBar.classList.toggle('logged-in', realdebridConnected);
         rdStatusBar.classList.toggle('not-logged-in', !realdebridConnected);
-        rdStatusValue.textContent = realdebridConnected ? 'Connected' : 'Not connected';
+        const rdStatusIcon = document.getElementById('rdStatusIcon');
+        if (rdStatusIcon) {
+            rdStatusIcon.innerHTML = realdebridConnected
+                ? '<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" fill="currentColor"/></svg>'
+                : '<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" fill="currentColor"/></svg>';
+        }
         
         // Show token input if not connected
         if (!realdebridConnected) {
@@ -125,7 +133,10 @@ async function checkRealDebridStatus() {
     } catch (error) {
         console.error('Error checking Real-Debrid status:', error);
         realdebridConnected = false;
-        rdStatusValue.textContent = 'Error';
+        const rdStatusIcon = document.getElementById('rdStatusIcon');
+        if (rdStatusIcon) {
+            rdStatusIcon.innerHTML = '<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" fill="currentColor"/></svg>';
+        }
         showRealDebridTokenInput();
         return false;
     }
