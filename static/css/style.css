@@ -100,14 +100,14 @@ button:disabled {
 
 .status-bars-container {
     display: flex;
-    gap: 15px;
+    gap: 8px;
     justify-content: center;
     flex-wrap: wrap;
     margin-bottom: 20px;
 }
 
 .status-bar {
-    margin: 10px auto 20px auto;
+    margin: 10px 4px 20px 4px;
     padding: 12px 20px;
     border-radius: 999px;
     border: 1px solid #d0d4f7;
